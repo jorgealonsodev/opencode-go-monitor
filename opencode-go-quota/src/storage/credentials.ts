@@ -26,6 +26,11 @@ export class CredentialsStorage {
     const authCookie = await this.secretStorage.get(AUTH_COOKIE_KEY);
     const workspaceId = await this.secretStorage.get(WORKSPACE_ID_KEY);
 
+    // Debug logging to diagnose missing credentials
+    if (typeof globalThis.opencodeGoQuotaDebug === 'function') {
+      globalThis.opencodeGoQuotaDebug(`[Credentials] getCredentials: authCookie=${authCookie ? 'present' : 'missing'}, workspaceId=${workspaceId ? 'present' : 'missing'}`);
+    }
+
     if (!authCookie || !workspaceId) {
       return null;
     }

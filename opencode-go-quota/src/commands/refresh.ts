@@ -30,7 +30,13 @@ export function registerRefreshCommand(
       }
     } catch (err) {
       statusBarManager.setState('error');
-      if (t) {
+      if (err instanceof CredentialsError) {
+        await window.showErrorMessage('OpenCode Go credentials are missing. Please re-configure.', 'Configure Now').then((action) => {
+          if (action === 'Configure Now') {
+            commands.executeCommand('opencodeGoQuota.configure');
+          }
+        });
+      } else if (t) {
         await window.showErrorMessage(t.msgFailedToRefresh(err instanceof Error ? err.message : String(err)));
       } else {
         await window.showErrorMessage(`Failed to refresh quota: ${err instanceof Error ? err.message : String(err)}`);

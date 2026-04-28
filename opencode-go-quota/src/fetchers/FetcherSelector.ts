@@ -26,6 +26,12 @@ export class FetcherSelector implements QuotaFetcher {
   async fetch(): Promise<QuotaSnapshot> {
     debug('[FetcherSelector] === fetch started ===');
     
+    // TODO: Re-enable API fetcher when endpoint is stable and returns JSON
+    // For now, force scraping strategy to avoid API errors and unnecessary credential checks
+    debug('[FetcherSelector] API fetcher disabled. Using scraping strategy.');
+    return this.scrapingFetcher.fetch();
+
+    /* 
     const cached = await this.historyStorage.getCachedStrategy();
     debug(`[FetcherSelector] cached strategy: ${cached?.strategy ?? 'none'}`);
 
@@ -59,6 +65,7 @@ export class FetcherSelector implements QuotaFetcher {
       debug('[FetcherSelector] falling back to scraping fetcher...');
       return this.scrapingFetcher.fetch();
     }
+    */
   }
 
   async isAvailable(): Promise<boolean> {

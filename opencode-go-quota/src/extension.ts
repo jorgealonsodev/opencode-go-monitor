@@ -217,6 +217,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       if (err instanceof CredentialsError) {
         outputChannel.appendLine('[fetch] -> setting state: auth (credentials missing or invalid)');
         statusBarManager.setState('auth');
+        // Prompt user to re-configure if credentials are missing
+        vscode.window.showErrorMessage('OpenCode Go credentials are missing. Please re-configure.', 'Configure Now').then((action) => {
+          if (action === 'Configure Now') {
+            vscode.commands.executeCommand('opencodeGoQuota.configure');
+          }
+        });
       } else {
         outputChannel.appendLine('[fetch] -> setting state: error');
         statusBarManager.setState('error');
