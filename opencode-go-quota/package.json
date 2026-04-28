@@ -1,0 +1,122 @@
+{
+  "name": "opencode-go-quota",
+  "displayName": "OpenCode Go Quota Monitor",
+  "description": "Real-time OpenCode Go quota monitoring in your VSCode status bar",
+  "version": "0.1.0",
+  "publisher": "publisher-name",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "opencodeGoQuota.configure",
+        "title": "OpenCode Go: Configure Credentials",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.refresh",
+        "title": "OpenCode Go: Refresh Quota",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.showDetails",
+        "title": "OpenCode Go: Show Details",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.exportHistory",
+        "title": "OpenCode Go: Export History",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.openDashboard",
+        "title": "OpenCode Go: Open Dashboard",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.clearCredentials",
+        "title": "OpenCode Go: Clear Credentials",
+        "category": "OpenCode Go"
+      }
+    ],
+    "configuration": {
+      "title": "OpenCode Go Quota Monitor",
+      "properties": {
+        "opencodeGoQuota.workspaceId": {
+          "type": "string",
+          "default": "",
+          "description": "Your OpenCode workspace ID"
+        },
+        "opencodeGoQuota.pollIntervalSeconds": {
+          "type": "number",
+          "default": 300,
+          "minimum": 60,
+          "description": "How often to poll for quota updates (seconds)"
+        },
+        "opencodeGoQuota.warningThreshold": {
+          "type": "number",
+          "default": 80,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Usage percentage to trigger warning color (yellow)"
+        },
+        "opencodeGoQuota.errorThreshold": {
+          "type": "number",
+          "default": 95,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Usage percentage to trigger error color (red)"
+        },
+        "opencodeGoQuota.fetcherStrategy": {
+          "type": "string",
+          "enum": ["auto", "api", "scraping"],
+          "default": "auto",
+          "description": "Data fetcher strategy: auto-detect, API-only, or scraping-only"
+        },
+        "opencodeGoQuota.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable debug logging"
+        }
+      }
+    },
+    "statusBarItem": [
+      {
+        "id": "opencodeGoQuota",
+        "alignment": "right",
+        "priority": 100
+      }
+    ]
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/publisher-name/opencode-go-quota"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "test": "vitest",
+    "package": "vsce package",
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.3.0",
+    "vitest": "^2.1.0"
+  }
+}

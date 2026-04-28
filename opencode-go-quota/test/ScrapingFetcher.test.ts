@@ -1,0 +1,122 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { ScrapingFetcher } from '../src/fetchers/ScrapingFetcher';
+import { CredentialsError, ParseError, NetworkError } from '../src/domain/errors';
+import type { CredentialsStorage } from '../src/storage/credentials';
+
+function createMockCredentialsStorage(
+  hasCreds: boolean,
+): CredentialsStorage {
+  return {
+    getCredentials: vi.fn(async () =>
+      hasCreds
+        ? { authCookie: 'session=abc123', workspaceId: 'wrk_01EXAMPLE00000000000000000' }
+        : null,
+    ),
+    hasCredentials: vi.fn(async () => hasCreds),
+    saveCredentials: vi.fn(),
+    clearCredentials: vi.fn(),
+    maskCookie: vi.fn((c: string) => c),
+  } as unknown as CredentialsStorage;
+}
+
+const fixturePath = join(__dirname, 'fixtures', 'dashboard.html');
+const dashboardHtml = readFileSync(fixturePath, 'utf-8');
+
+describe('ScrapingFetcher', () => {
+  describe('fetch', () => {
+    it('parses real HTML fixture correctly', async () => {
+      const fetchFn = vi.fn(async () =>
+        new Response(dashboardHtml, { status: 200 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      const snapshot = await fetcher.fetch();
+
+      expect(snapshot.source).toBe('scraping');
+      expect(snapshot.rolling.status).toBe('ok');
+      expect(snapshot.rolling.usagePercent).toBe(29);
+      expect(snapshot.rolling.resetsInSeconds).toBe(3471);
+      expect(snapshot.weekly.status).toBe('ok');
+      expect(snapshot.weekly.usagePercent).toBe(11);
+      expect(snapshot.weekly.resetsInSeconds).toBe(464797);
+      expect(snapshot.monthly.status).toBe('ok');
+      expect(snapshot.monthly.usagePercent).toBe(37);
+      expect(snapshot.monthly.resetsInSeconds).toBe(1811918);
+      expect(snapshot.timestamp).toBeGreaterThan(0);
+    });
+
+    it('throws CredentialsError when credentials are missing', async () => {
+      const creds = createMockCredentialsStorage(false);
+      const fetcher = new ScrapingFetcher(creds);
+
+      await expect(fetcher.fetch()).rejects.toBeInstanceOf(CredentialsError);
+    });
+
+    it('throws NetworkError when fetch throws', async () => {
+      const fetchFn = vi.fn(async () => {
+        throw new Error('ECONNREFUSED');
+      });
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      await expect(fetcher.fetch()).rejects.toBeInstanceOf(NetworkError);
+    });
+
+    it('throws NetworkError on non-OK HTTP status', async () => {
+      const fetchFn = vi.fn(async () =>
+        new Response('Unauthorized', { status: 401 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      await expect(fetcher.fetch()).rejects.toBeInstanceOf(NetworkError);
+      await expect(fetcher.fetch()).rejects.toThrow('HTTP 401');
+    });
+
+    it('throws ParseError when HTML lacks quota data', async () => {
+      const fetchFn = vi.fn(async () =>
+        new Response('<html><body>no data here</body></html>', { status: 200 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      await expect(fetcher.fetch()).rejects.toBeInstanceOf(ParseError);
+    });
+
+    it('uses correct URL with workspaceId', async () => {
+      const fetchFn = vi.fn(async () =>
+        new Response(dashboardHtml, { status: 200 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      await fetcher.fetch();
+
+      expect(fetchFn).toHaveBeenCalledWith(
+        'https://opencode.ai/workspace/wrk_01EXAMPLE00000000000000000/go',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Cookie: 'session=abc123',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('isAvailable', () => {
+    it('returns true when credentials exist', async () => {
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds);
+      expect(await fetcher.isAvailable()).toBe(true);
+    });
+
+    it('returns false when credentials are missing', async () => {
+      const creds = createMockCredentialsStorage(false);
+      const fetcher = new ScrapingFetcher(creds);
+      expect(await fetcher.isAvailable()).toBe(false);
+    });
+  });
+});

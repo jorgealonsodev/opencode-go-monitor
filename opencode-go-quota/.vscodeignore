@@ -1,0 +1,17 @@
+.vscode/**
+.github/**
+src/**
+test/**
+node_modules/**
+!.vscode/launch.json
+.vscodeignore
+gitignore
+*.log
+*.vsix
+.eslintrc*
+.prettierrc*
+vitest.config.ts
+build.mjs
+tsconfig.json
+*.map
+!dist/
