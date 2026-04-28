@@ -9,7 +9,7 @@ function createMockCredentialsStorage(
   return {
     getCredentials: vi.fn(async () =>
       hasCreds
-        ? { authCookie: 'session=abc123', workspaceId: 'wrk_test' }
+        ? { authCookie: 'auth=session=abc123', workspaceId: 'wrk_test' }
         : null,
     ),
     hasCredentials: vi.fn(async () => hasCreds),
@@ -121,7 +121,7 @@ describe('ApiFetcher', () => {
         'https://console.opencode.ai/zen/go/v1/usage',
         expect.objectContaining({
           headers: expect.objectContaining({
-            Cookie: 'session=abc123',
+            Cookie: 'auth=session=abc123',
           }),
         }),
       );

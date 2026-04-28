@@ -95,7 +95,7 @@ describe('showDetailQuickPick', () => {
 
     const promise = showDetailQuickPick(snapshot, prediction, 42, factory);
 
-    expect(qp.items).toHaveLength(8);
+    expect(qp.items).toHaveLength(9);
     expect(qp.items[0].label).toBe('$(clock) Rolling: 10% · resets in 1h 0m');
     expect(qp.items[1].label).toBe('$(calendar) Weekly: 50% · resets in 1d 0h');
     expect(qp.items[2].label).toBe('$(calendar) Monthly: 30% · resets in 30d 0h');
@@ -105,6 +105,7 @@ describe('showDetailQuickPick', () => {
     expect(qp.items[5].label).toBe('$(link-external) Open OpenCode dashboard');
     expect(qp.items[6].label).toBe('$(refresh) Force refresh');
     expect(qp.items[7].label).toBe('$(gear) Reconfigure credentials');
+    expect(qp.items[8].label).toBe('$(sign-out) Logout (Clear credentials)');
 
     qp._fireHide();
     await promise;

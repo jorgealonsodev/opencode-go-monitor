@@ -70,37 +70,36 @@ describe('FetcherSelector', () => {
   });
 
   describe('fetch', () => {
-    it('uses ApiFetcher when it succeeds', async () => {
-      vi.mocked(apiFetcher.fetch).mockResolvedValue(mockSnapshot);
+    it('uses scrapingFetcher directly', async () => {
+      vi.mocked(scrapingFetcher.fetch).mockResolvedValue(mockSnapshot);
 
       const result = await selector.fetch();
 
       expect(result).toBe(mockSnapshot);
-      expect(apiFetcher.fetch).toHaveBeenCalledTimes(1);
-      expect(scrapingFetcher.fetch).not.toHaveBeenCalled();
-      expect(historyStorage.setCachedStrategy).toHaveBeenCalledWith('api');
+      expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
+      expect(apiFetcher.fetch).not.toHaveBeenCalled();
     });
 
-    it('falls back to ScrapingFetcher on API 404', async () => {
+    it('does not call apiFetcher even on simulated API 404', async () => {
       vi.mocked(apiFetcher.fetch).mockRejectedValue(new NetworkError('Not Found', 404));
       vi.mocked(scrapingFetcher.fetch).mockResolvedValue({ ...mockSnapshot, source: 'scraping' });
 
       const result = await selector.fetch();
 
       expect(result.source).toBe('scraping');
-      expect(apiFetcher.fetch).toHaveBeenCalledTimes(1);
+      expect(apiFetcher.fetch).not.toHaveBeenCalled();
       expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
-      expect(historyStorage.setCachedStrategy).toHaveBeenCalledWith('scraping');
     });
 
-    it('falls back to ScrapingFetcher on API 501', async () => {
+    it('does not call apiFetcher even on simulated API 501', async () => {
       vi.mocked(apiFetcher.fetch).mockRejectedValue(new NetworkError('Not Implemented', 501));
       vi.mocked(scrapingFetcher.fetch).mockResolvedValue({ ...mockSnapshot, source: 'scraping' });
 
       const result = await selector.fetch();
 
       expect(result.source).toBe('scraping');
-      expect(historyStorage.setCachedStrategy).toHaveBeenCalledWith('scraping');
+      expect(apiFetcher.fetch).not.toHaveBeenCalled();
+      expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('falls back to ScrapingFetcher on other API errors without caching scraping', async () => {
@@ -113,18 +112,18 @@ describe('FetcherSelector', () => {
       expect(historyStorage.setCachedStrategy).not.toHaveBeenCalledWith('scraping');
     });
 
-    it('uses cached api strategy directly', async () => {
+    it('ignores api cache and uses scrapingFetcher', async () => {
       vi.mocked(historyStorage.getCachedStrategy).mockResolvedValue({
         strategy: 'api',
         timestamp: Date.now(),
       });
-      vi.mocked(apiFetcher.fetch).mockResolvedValue(mockSnapshot);
+      vi.mocked(scrapingFetcher.fetch).mockResolvedValue(mockSnapshot);
 
       const result = await selector.fetch();
 
       expect(result).toBe(mockSnapshot);
-      expect(apiFetcher.fetch).toHaveBeenCalledTimes(1);
-      expect(scrapingFetcher.fetch).not.toHaveBeenCalled();
+      expect(apiFetcher.fetch).not.toHaveBeenCalled();
+      expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('uses cached scraping strategy directly', async () => {
@@ -141,14 +140,15 @@ describe('FetcherSelector', () => {
       expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
     });
 
-    it('ignores expired cache and reverts to auto-detect', async () => {
+    it('ignores expired cache and uses scrapingFetcher', async () => {
       vi.mocked(historyStorage.getCachedStrategy).mockResolvedValue(null);
-      vi.mocked(apiFetcher.fetch).mockResolvedValue(mockSnapshot);
+      vi.mocked(scrapingFetcher.fetch).mockResolvedValue(mockSnapshot);
 
       const result = await selector.fetch();
 
       expect(result).toBe(mockSnapshot);
-      expect(apiFetcher.fetch).toHaveBeenCalledTimes(1);
+      expect(apiFetcher.fetch).not.toHaveBeenCalled();
+      expect(scrapingFetcher.fetch).toHaveBeenCalledTimes(1);
     });
 
     it('propagates error when both fetchers fail', async () => {

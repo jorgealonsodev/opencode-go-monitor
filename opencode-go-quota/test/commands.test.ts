@@ -18,6 +18,9 @@ import type {
   EnvLike,
   UriLike,
 } from '../src/commands/types';
+import { getTranslations } from '../src/i18n';
+
+const mockT = getTranslations('en');
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -174,12 +177,12 @@ describe('registerConfigureCommand', () => {
   });
 
   it('registers the correct command', () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     expect(getRegisteredCommand()).toBe('opencodeGoQuota.configure');
   });
 
   it('saves credentials when both inputs are provided', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce('ws-123')
       .mockResolvedValueOnce('cookie-abc');
@@ -193,7 +196,7 @@ describe('registerConfigureCommand', () => {
   });
 
   it('shows error when workspaceId is empty', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce('   ')
       .mockResolvedValueOnce('cookie-abc');
@@ -207,7 +210,7 @@ describe('registerConfigureCommand', () => {
   });
 
   it('shows error when authCookie is empty', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce('ws-123')
       .mockResolvedValueOnce('   ');
@@ -221,7 +224,7 @@ describe('registerConfigureCommand', () => {
   });
 
   it('does nothing when user cancels workspaceId prompt', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
 
     await invoke();
@@ -231,7 +234,7 @@ describe('registerConfigureCommand', () => {
   });
 
   it('does nothing when user cancels authCookie prompt', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce('ws-123')
       .mockResolvedValueOnce(undefined);
@@ -243,7 +246,7 @@ describe('registerConfigureCommand', () => {
   });
 
   it('shows error notification on unexpected error', async () => {
-    registerConfigureCommand(credentials, window, commands);
+    registerConfigureCommand(credentials, window, commands, mockT);
     (window.showInputBox as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'));
 
     await invoke();
@@ -289,13 +292,13 @@ describe('registerRefreshCommand', () => {
     statusBar = createMockStatusBarManager();
     window = createMockWindow();
 
-    registerRefreshCommand(fetcher, history, statusBar, window, commands);
+    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
     await invoke();
 
     expect(statusBar.setState).toHaveBeenCalledWith('loading');
     expect(fetcher.fetch).toHaveBeenCalled();
     expect(history.append).toHaveBeenCalledWith(snapshot);
-    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 80, error: 95 });
+    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 80, error: 95 }, 'rolling');
     expect(window.showInformationMessage).toHaveBeenCalledWith(
       expect.stringContaining('Quota refreshed'),
     );
@@ -307,7 +310,7 @@ describe('registerRefreshCommand', () => {
     statusBar = createMockStatusBarManager();
     window = createMockWindow();
 
-    registerRefreshCommand(fetcher, history, statusBar, window, commands);
+    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
     await invoke();
 
     expect(statusBar.setState).toHaveBeenCalledWith('loading');
@@ -327,10 +330,10 @@ describe('registerRefreshCommand', () => {
     registerRefreshCommand(fetcher, history, statusBar, window, commands, {
       warning: 70,
       error: 90,
-    });
+    }, 'rolling');
     await invoke();
 
-    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 70, error: 90 });
+    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 70, error: 90 }, 'rolling');
   });
 });
 
@@ -390,7 +393,9 @@ describe('registerShowDetailsCommand', () => {
     await invoke();
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(
-      'No quota data available. Please refresh first.',
+      mockT.msgNoDataAvailable,
+      mockT.msgRefreshNow,
+      mockT.msgConfigureCredentials,
     );
   });
 });
@@ -430,7 +435,7 @@ describe('registerExportHistoryCommand', () => {
     (window.showSaveDialog as ReturnType<typeof vi.fn>).mockResolvedValue(uri);
     const writeSpy = vi.fn();
 
-    registerExportHistoryCommand(history, window, commands, undefined, writeSpy);
+    registerExportHistoryCommand(history, window, commands, mockT, undefined, writeSpy);
     await invoke();
 
     expect(window.showSaveDialog).toHaveBeenCalled();
@@ -444,10 +449,10 @@ describe('registerExportHistoryCommand', () => {
     history = createMockHistoryStorage([]);
     window = createMockWindow();
 
-    registerExportHistoryCommand(history, window, commands);
+    registerExportHistoryCommand(history, window, commands, mockT);
     await invoke();
 
-    expect(window.showErrorMessage).toHaveBeenCalledWith('No history to export.');
+    expect(window.showErrorMessage).toHaveBeenCalledWith(mockT.msgNoDataAvailable);
     expect(window.showSaveDialog).not.toHaveBeenCalled();
   });
 
@@ -458,7 +463,7 @@ describe('registerExportHistoryCommand', () => {
     (window.showSaveDialog as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
     const writeSpy = vi.fn();
 
-    registerExportHistoryCommand(history, window, commands, undefined, writeSpy);
+    registerExportHistoryCommand(history, window, commands, mockT, undefined, writeSpy);
     await invoke();
 
     expect(writeSpy).not.toHaveBeenCalled();
@@ -475,7 +480,7 @@ describe('registerExportHistoryCommand', () => {
       throw new Error('disk full');
     });
 
-    registerExportHistoryCommand(history, window, commands, undefined, writeSpy);
+    registerExportHistoryCommand(history, window, commands, mockT, undefined, writeSpy);
     await invoke();
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('disk full'));
@@ -548,7 +553,7 @@ describe('registerClearCredentialsCommand', () => {
   });
 
   it('clears credentials, resets status bar, and shows confirmation', async () => {
-    registerClearCredentialsCommand(credentials, statusBar, window, commands);
+    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
     await invoke();
 
     expect(credentials.clearCredentials).toHaveBeenCalled();
@@ -563,7 +568,7 @@ describe('registerClearCredentialsCommand', () => {
       new Error('storage locked'),
     );
 
-    registerClearCredentialsCommand(credentials, statusBar, window, commands);
+    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
     await invoke();
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('storage locked'));
