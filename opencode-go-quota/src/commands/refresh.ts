@@ -1,6 +1,7 @@
 import type { FetcherSelector } from '../fetchers/FetcherSelector';
 import type { HistoryStorage } from '../storage/history';
 import type { StatusBarManager } from '../ui/statusBar';
+import { CredentialsError } from '../domain/errors';
 import type { CommandsLike, WindowLike, DisposableLike } from './types';
 import type { Translations } from '../i18n';
 

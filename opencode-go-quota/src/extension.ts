@@ -173,21 +173,40 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   let pollFailureCount = 0;
   let lastPollFailureTime = 0;
   let currentIntervalMs = readPollInterval() * 1000;
+  let lastFailureState: 'auth' | 'error' | null = null;
 
   function getPollBackoffMs(): number {
     if (pollFailureCount === 0) {
       return 0;
     }
+    // Defensive: if lastPollFailureTime is 0 but count is > 0, reset count
+    if (lastPollFailureTime === 0) {
+      pollFailureCount = 0;
+      return 0;
+    }
     const stage = Math.min(pollFailureCount - 1, POLL_BACKOFF_DELAYS_MS.length - 1);
     const delay = POLL_BACKOFF_DELAYS_MS[stage];
     const elapsed = Date.now() - lastPollFailureTime;
-    return Math.max(0, delay - elapsed);
+    const remaining = Math.max(0, delay - elapsed);
+    // Avoid micro-backoffs due to timer drift (e.g. "waiting 5ms")
+    return remaining < 1000 ? 0 : remaining;
   }
 
   async function doFetch(): Promise<void> {
     const backoffMs = getPollBackoffMs();
     if (backoffMs > 0) {
       outputChannel.appendLine(`[fetch] backoff: waiting ${backoffMs}ms before next fetch`);
+      // If the last failure was an auth error, keep showing auth state so the user
+      // continues to see that credentials are invalid/expired. Otherwise, restore
+      // the last known good data instead of leaving the status bar stuck on error/loading.
+      if (lastFailureState === 'auth') {
+        statusBarManager.setState('auth');
+        return;
+      }
+      const history = historyStorage.getAll();
+      if (history.length > 0) {
+        statusBarManager.update(history[history.length - 1], thresholds, displayWindow);
+      }
       return;
     }
 
@@ -197,6 +216,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
     }
 
     isFetching = true;
+    statusBarManager.setState('loading');
     try {
       outputChannel.appendLine('[fetch] === starting quota fetch ===');
       const snapshot = await fetcherSelector.fetch();
@@ -205,6 +225,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       lastFetchTime = Date.now();
       pollFailureCount = 0;
       lastPollFailureTime = 0;
+      lastFailureState = null;
       outputChannel.appendLine(`[fetch] SUCCESS: source=${snapshot.source}`);
       outputChannel.appendLine(`[fetch] rolling=${snapshot.rolling.usagePercent}%, weekly=${snapshot.weekly.usagePercent}%, monthly=${snapshot.monthly.usagePercent}%`);
     } catch (err) {
@@ -215,6 +236,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       outputChannel.appendLine(`[fetch] FAILED: ${errorName}: ${errorMsg}`);
       // SECURITY: Do not log stack traces - they reveal internal file paths and structure
       if (err instanceof CredentialsError) {
+        lastFailureState = 'auth';
         outputChannel.appendLine('[fetch] -> setting state: auth (credentials missing or invalid)');
         statusBarManager.setState('auth');
         // Prompt user to re-configure if credentials are missing
@@ -224,6 +246,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
           }
         });
       } else {
+        lastFailureState = 'error';
         outputChannel.appendLine('[fetch] -> setting state: error');
         statusBarManager.setState('error');
       }
