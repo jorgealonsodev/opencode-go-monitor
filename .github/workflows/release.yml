@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: opencode-go-quota
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - run: npm ci
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package .vsix
+        run: npx vsce package --out opencode-go-quota.vsix
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: opencode-go-quota/opencode-go-quota.vsix
+          generate_release_notes: true
+          fail_on_unmatched_files: true
