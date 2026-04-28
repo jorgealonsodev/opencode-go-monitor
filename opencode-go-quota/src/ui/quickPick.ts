@@ -1,5 +1,6 @@
 import type { QuotaSnapshot } from '../domain/types';
 import { formatTime, formatPercent } from '../domain/format';
+import type { Translations } from '../i18n';
 
 export interface QuickPickItem {
   label: string;
@@ -24,26 +25,34 @@ export async function showDetailQuickPick(
   prediction: Date | null,
   historyCount: number,
   createQuickPick: CreateQuickPick,
+  t?: Translations,
 ): Promise<string | undefined> {
   const qp = createQuickPick<QuickPickItem>();
 
+  const rollingLabel = t?.detailsRolling ?? 'Rolling';
+  const weeklyLabel = t?.detailsWeekly ?? 'Weekly';
+  const monthlyLabel = t?.detailsMonthly ?? 'Monthly';
+  const predictionLabel = t?.detailsPrediction ?? ((time: string) => `Predicted exhaustion: ${time}`);
+  const noPredictionLabel = t?.detailsNoPrediction ?? 'Predicted exhaustion: Insufficient data';
+  const historyLabel = t?.detailsHistoryCount ?? ((count: number) => `View history (${count} entries)`);
+
   qp.items = [
     {
-      label: `$(clock) Rolling: ${formatPercent(snapshot.rolling.usagePercent)} · resets in ${formatTime(snapshot.rolling.resetsInSeconds)}`,
+      label: `$(clock) ${rollingLabel}: ${formatPercent(snapshot.rolling.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.rolling.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.rolling.resetsInSeconds)}`}`,
     },
     {
-      label: `$(calendar) Weekly: ${formatPercent(snapshot.weekly.usagePercent)} · resets in ${formatTime(snapshot.weekly.resetsInSeconds)}`,
+      label: `$(calendar) ${weeklyLabel}: ${formatPercent(snapshot.weekly.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.weekly.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.weekly.resetsInSeconds)}`}`,
     },
     {
-      label: `$(calendar) Monthly: ${formatPercent(snapshot.monthly.usagePercent)} · resets in ${formatTime(snapshot.monthly.resetsInSeconds)}`,
+      label: `$(calendar) ${monthlyLabel}: ${formatPercent(snapshot.monthly.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.monthly.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.monthly.resetsInSeconds)}`}`,
     },
     {
       label: prediction
-        ? `$(trend-up) Predicted exhaustion: ${prediction.toLocaleDateString()}`
-        : '$(trend-up) Predicted exhaustion: Insufficient data',
+        ? `$(trend-up) ${typeof predictionLabel === 'function' ? predictionLabel(prediction.toLocaleDateString()) : predictionLabel}`
+        : `$(trend-up) ${noPredictionLabel}`,
     },
     {
-      label: `$(list-unordered) View history (${historyCount} entries)`,
+      label: `$(list-unordered) ${typeof historyLabel === 'function' ? historyLabel(historyCount) : historyLabel}`,
     },
     {
       label: '$(link-external) Open OpenCode dashboard',
@@ -52,7 +61,10 @@ export async function showDetailQuickPick(
       label: '$(refresh) Force refresh',
     },
     {
-      label: '$(gear) Reconfigure credentials',
+      label: `$(gear) ${t?.detailsReconfigure ?? 'Reconfigure credentials'}`,
+    },
+    {
+      label: `$(sign-out) ${t?.detailsLogout ?? 'Logout (Clear credentials)'}`,
     },
   ];
 

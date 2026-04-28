@@ -76,6 +76,40 @@ describe('ScrapingFetcher', () => {
       await expect(fetcher.fetch()).rejects.toThrow('HTTP 401');
     });
 
+    it('parses new HTML format with separate $R references correctly', async () => {
+      // New format where each usage window has its own separate $R reference index
+      const newFormatHtml = `
+        <html><body>
+        <script>
+        self.$R=self.$R||[];
+        $R[24]($R[18],$R[25]={mine:!0,useBalance:!1,
+          rollingUsage:$R[30]={status:"ok",resetInSec:17562,usagePercent:1},
+          weeklyUsage:$R[31]={status:"ok",resetInSec:533388,usagePercent:5},
+          monthlyUsage:$R[32]={status:"ok",resetInSec:2485309,usagePercent:19}
+        });
+        </script>
+        </body></html>`;
+      const fetchFn = vi.fn(async () =>
+        new Response(newFormatHtml, { status: 200 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      const snapshot = await fetcher.fetch();
+
+      expect(snapshot.source).toBe('scraping');
+      expect(snapshot.rolling.status).toBe('ok');
+      expect(snapshot.rolling.usagePercent).toBe(1);
+      expect(snapshot.rolling.resetsInSeconds).toBe(17562);
+      expect(snapshot.weekly.status).toBe('ok');
+      expect(snapshot.weekly.usagePercent).toBe(5);
+      expect(snapshot.weekly.resetsInSeconds).toBe(533388);
+      expect(snapshot.monthly.status).toBe('ok');
+      expect(snapshot.monthly.usagePercent).toBe(19);
+      expect(snapshot.monthly.resetsInSeconds).toBe(2485309);
+      expect(snapshot.timestamp).toBeGreaterThan(0);
+    });
+
     it('throws ParseError when HTML lacks quota data', async () => {
       const fetchFn = vi.fn(async () =>
         new Response('<html><body>no data here</body></html>', { status: 200 }),

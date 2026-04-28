@@ -1,5 +1,6 @@
-import type { QuotaSnapshot, StatusBarState } from '../domain/types';
-import { formatTime, formatPercent, getWorstWindow } from '../domain/format';
+import type { QuotaSnapshot, QuotaWindow, StatusBarState } from '../domain/types';
+import { formatTime, formatPercent } from '../domain/format';
+import type { Translations } from '../i18n';
 
 export interface ThemeColor {
   id: string;
@@ -7,7 +8,7 @@ export interface ThemeColor {
 
 export interface StatusBarItem {
   text: string;
-  tooltip: string;
+  tooltip: string | { value: string; isTrusted?: boolean } | undefined;
   command: string | undefined;
   color: string | ThemeColor | undefined;
   show(): void;
@@ -17,14 +18,23 @@ export interface StatusBarItem {
 
 export type StatusBarItemFactory = (alignment: number, priority: number) => StatusBarItem;
 
+function createProgressBar(percent: number, length: number = 20): string {
+  const filled = Math.round((percent / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
 export class StatusBarManager {
   private _item: StatusBarItem | undefined;
 
-  constructor(private readonly factory: StatusBarItemFactory) {}
+  constructor(
+    private readonly factory: StatusBarItemFactory,
+    private readonly t: Translations,
+  ) {}
 
   create(): StatusBarItem {
     this._item = this.factory(2, 100); // Right = 2, priority = 100
-    this._item.command = 'opencodeGoQuota.showDetails';
+    this._item.command = 'opencodeGoQuota.statusBarClick';
     this._item.tooltip = 'OpenCode Go Quota';
     this._item.show();
     return this._item;
@@ -33,22 +43,50 @@ export class StatusBarManager {
   update(
     snapshot: QuotaSnapshot,
     thresholds: { warning: number; error: number },
+    displayWindow: 'rolling' | 'weekly' | 'monthly' = 'rolling',
   ): void {
     if (!this._item) {
       return;
     }
 
-    const worst = getWorstWindow(snapshot);
-    const pct = formatPercent(worst.usagePercent);
-    const reset = formatTime(worst.resetsInSeconds);
+    const window = snapshot[displayWindow];
+    const labelKey = displayWindow === 'rolling' ? 'statusBarRolling' : displayWindow === 'weekly' ? 'statusBarWeekly' : 'statusBarMonthly';
+    const label = this.t[labelKey];
+    const pct = formatPercent(window.usagePercent);
+    const reset = formatTime(window.resetsInSeconds);
 
-    this._item.text = `$(graph) OC Go: ${pct} · ${reset}`;
-    this._item.tooltip = 'OpenCode Go Quota';
-    this._item.command = 'opencodeGoQuota.showDetails';
+    // Build rich tooltip with progress bars for all windows
+    const rollingBar = createProgressBar(snapshot.rolling.usagePercent);
+    const weeklyBar = createProgressBar(snapshot.weekly.usagePercent);
+    const monthlyBar = createProgressBar(snapshot.monthly.usagePercent);
 
-    if (worst.usagePercent >= thresholds.error) {
+    const rollingLabel = this.t.statusBarRolling;
+    const weeklyLabel = this.t.statusBarWeekly;
+    const monthlyLabel = this.t.statusBarMonthly;
+
+    const tooltip = [
+      this.t.statusBarTooltip(label, pct),
+      '',
+      `**${rollingLabel}**`,
+      `${rollingBar} \`${snapshot.rolling.usagePercent}%\` (${this.t.statusBarReset(formatTime(snapshot.rolling.resetsInSeconds))})`,
+      '',
+      `**${weeklyLabel}**`,
+      `${weeklyBar} \`${snapshot.weekly.usagePercent}%\` (${this.t.statusBarReset(formatTime(snapshot.weekly.resetsInSeconds))})`,
+      '',
+      `**${monthlyLabel}**`,
+      `${monthlyBar} \`${snapshot.monthly.usagePercent}%\` (${this.t.statusBarReset(formatTime(snapshot.monthly.resetsInSeconds))})`,
+      '',
+      `---`,
+      `${this.t.statusBarSource(snapshot.source)} | ${this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString())}`,
+    ].join('\n');
+
+    this._item.text = this.t.statusBarText(label, pct, reset);
+    this._item.tooltip = tooltip;
+    this._item.command = 'opencodeGoQuota.statusBarClick';
+
+    if (window.usagePercent >= thresholds.error) {
       this._item.color = { id: 'statusBarItem.errorBackground' };
-    } else if (worst.usagePercent >= thresholds.warning) {
+    } else if (window.usagePercent >= thresholds.warning) {
       this._item.color = { id: 'statusBarItem.warningBackground' };
     } else {
       this._item.color = undefined;
@@ -62,22 +100,22 @@ export class StatusBarManager {
 
     switch (state) {
       case 'setup':
-        this._item.text = '$(gear) OC Go: setup';
+        this._item.text = this.t.stateSetup;
         this._item.color = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'loading':
-        this._item.text = '$(loading~spin) OC Go: loading...';
+        this._item.text = this.t.stateLoading;
         this._item.color = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'auth':
-        this._item.text = '$(warning) OC Go: auth expired';
+        this._item.text = this.t.stateAuthExpired;
         this._item.color = { id: 'statusBarItem.errorBackground' };
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'error':
-        this._item.text = '$(warning) OC Go: error';
+        this._item.text = this.t.stateError;
         this._item.color = { id: 'statusBarItem.errorBackground' };
         this._item.tooltip = 'OpenCode Go Quota';
         break;

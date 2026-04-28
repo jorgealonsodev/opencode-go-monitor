@@ -4,30 +4,27 @@ export interface SecretStorageLike {
   delete(key: string): Thenable<void>;
 }
 
-export interface WorkspaceConfigurationLike {
-  get<T>(section: string, defaultValue?: T): T | undefined;
-  update(section: string, value: any, global?: boolean): Thenable<void>;
-}
-
 const AUTH_COOKIE_KEY = 'opencodeGoQuota.authCookie';
 const WORKSPACE_ID_KEY = 'opencodeGoQuota.workspaceId';
+const COOKIE_TIMESTAMP_KEY = 'opencodeGoQuota.cookieTimestamp';
 
 export class CredentialsStorage {
-  constructor(
-    private readonly secretStorage: SecretStorageLike,
-    private readonly config: WorkspaceConfigurationLike,
-  ) {}
+  constructor(private readonly secretStorage: SecretStorageLike) {}
 
   async saveCredentials(authCookie: string, workspaceId: string): Promise<void> {
+    // SECURITY: Store directly in SecretStorage (OS keychain encryption)
+    // No additional obfuscation needed - VSCode SecretStorage already uses
+    // macOS Keychain, Windows Credential Manager, or Linux Secret Service
     await Promise.all([
       this.secretStorage.store(AUTH_COOKIE_KEY, authCookie),
-      this.config.update(WORKSPACE_ID_KEY, workspaceId),
+      this.secretStorage.store(WORKSPACE_ID_KEY, workspaceId),
+      this.secretStorage.store(COOKIE_TIMESTAMP_KEY, Date.now().toString()),
     ]);
   }
 
   async getCredentials(): Promise<{ authCookie: string; workspaceId: string } | null> {
     const authCookie = await this.secretStorage.get(AUTH_COOKIE_KEY);
-    const workspaceId = this.config.get<string>(WORKSPACE_ID_KEY);
+    const workspaceId = await this.secretStorage.get(WORKSPACE_ID_KEY);
 
     if (!authCookie || !workspaceId) {
       return null;
@@ -39,7 +36,8 @@ export class CredentialsStorage {
   async clearCredentials(): Promise<void> {
     await Promise.all([
       this.secretStorage.delete(AUTH_COOKIE_KEY),
-      this.config.update(WORKSPACE_ID_KEY, undefined),
+      this.secretStorage.delete(WORKSPACE_ID_KEY),
+      this.secretStorage.delete(COOKIE_TIMESTAMP_KEY),
     ]);
   }
 
@@ -48,10 +46,16 @@ export class CredentialsStorage {
     return creds !== null;
   }
 
-  maskCookie(cookie: string): string {
-    if (cookie.length <= 4) {
-      return '*'.repeat(cookie.length);
+  async getCredentialAge(): Promise<number | null> {
+    const timestamp = await this.secretStorage.get(COOKIE_TIMESTAMP_KEY);
+    if (!timestamp) {
+      return null;
     }
-    return '*'.repeat(cookie.length - 4) + cookie.slice(-4);
+    return Date.now() - parseInt(timestamp, 10);
+  }
+
+  maskCookie(cookie: string): string {
+    // SECURITY: Never reveal any part of the auth cookie in debug output
+    return `[${cookie.length} chars]`;
   }
 }

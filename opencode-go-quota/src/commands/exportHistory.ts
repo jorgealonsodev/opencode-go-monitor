@@ -1,11 +1,13 @@
 import * as fs from 'fs';
 import type { HistoryStorage } from '../storage/history';
 import type { CommandsLike, WindowLike, UriLike, DisposableLike } from './types';
+import type { Translations } from '../i18n';
 
 export function registerExportHistoryCommand(
   historyStorage: HistoryStorage,
   window: WindowLike,
   commands: CommandsLike,
+  t: Translations,
   uriFactory: { file: (path: string) => UriLike } = {
     file: (path) => ({ fsPath: path, toString: () => path, scheme: 'file' }),
   },
@@ -14,7 +16,7 @@ export function registerExportHistoryCommand(
   return commands.registerCommand('opencodeGoQuota.exportHistory', async () => {
     const history = historyStorage.getAll();
     if (history.length === 0) {
-      await window.showErrorMessage('No history to export.');
+      await window.showErrorMessage(t.msgNoDataAvailable);
       return;
     }
 
@@ -33,11 +35,9 @@ export function registerExportHistoryCommand(
     try {
       const json = historyStorage.exportToJson();
       writeFileSync(uri.fsPath, json, 'utf-8');
-      await window.showInformationMessage(`History exported to ${uri.fsPath}`);
+      await window.showInformationMessage(t.msgHistoryExported(uri.fsPath));
     } catch (err) {
-      await window.showErrorMessage(
-        `Failed to export history: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      await window.showErrorMessage(t.msgFailedToExport(err instanceof Error ? err.message : String(err)));
     }
   });
 }

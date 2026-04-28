@@ -7,6 +7,12 @@ import type { HistoryStorage } from '../storage/history';
 export const BACKOFF_STAGES = [60, 300, 900, 1800] as const;
 export const MAX_BACKOFF = 1800;
 
+const debug = (msg: string) => {
+  if (typeof globalThis.opencodeGoQuotaDebug === 'function') {
+    globalThis.opencodeGoQuotaDebug(msg);
+  }
+};
+
 export class FetcherSelector implements QuotaFetcher {
   private failureCount = 0;
   private lastFailureTime = 0;
@@ -18,31 +24,39 @@ export class FetcherSelector implements QuotaFetcher {
   ) {}
 
   async fetch(): Promise<QuotaSnapshot> {
+    debug('[FetcherSelector] === fetch started ===');
+    
     const cached = await this.historyStorage.getCachedStrategy();
+    debug(`[FetcherSelector] cached strategy: ${cached?.strategy ?? 'none'}`);
 
     if (cached?.strategy === 'scraping') {
+      debug('[FetcherSelector] using cached scraping strategy');
       return this.scrapingFetcher.fetch();
     }
 
     // Cached 'api' or no cache (auto-detect)
+    debug('[FetcherSelector] trying API fetcher...');
     try {
       const snapshot = await this.apiFetcher.fetch();
       this.recordSuccess();
       if (!cached || cached.strategy !== 'api') {
+        debug('[FetcherSelector] API success, caching strategy=api');
         await this.historyStorage.setCachedStrategy('api');
       }
       return snapshot;
     } catch (err) {
       const isNotFound = err instanceof NetworkError && (err.status === 404 || err.status === 501);
-
+      debug(`[FetcherSelector] API failed: ${err instanceof Error ? err.message : String(err)} (isNotFound: ${isNotFound})`);
+      
+      this.recordFailure();
+      
       if (isNotFound) {
-        this.recordFailure();
+        debug('[FetcherSelector] API not available, switching to scraping');
         await this.historyStorage.setCachedStrategy('scraping');
-      } else {
-        this.recordFailure();
       }
 
       // Fallback to scraping
+      debug('[FetcherSelector] falling back to scraping fetcher...');
       return this.scrapingFetcher.fetch();
     }
   }

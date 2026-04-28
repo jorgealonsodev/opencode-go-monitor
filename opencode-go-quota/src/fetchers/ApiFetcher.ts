@@ -3,6 +3,12 @@ import { CredentialsError, NetworkError } from '../domain/errors';
 import type { CredentialsStorage } from '../storage/credentials';
 import type { FetchFn } from './ScrapingFetcher';
 
+const debug = (msg: string) => {
+  if (typeof globalThis.opencodeGoQuotaDebug === 'function') {
+    globalThis.opencodeGoQuotaDebug(msg);
+  }
+};
+
 export class ApiFetcher implements QuotaFetcher {
   private readonly fetchFn: FetchFn;
 
@@ -14,28 +20,61 @@ export class ApiFetcher implements QuotaFetcher {
   }
 
   async fetch(): Promise<QuotaSnapshot> {
+    debug('[ApiFetcher] === fetch started ===');
+    
     const creds = await this.credentials.getCredentials();
     if (!creds) {
+      debug('[ApiFetcher] no credentials found');
       throw new CredentialsError();
     }
 
+    debug(`[ApiFetcher] workspaceId: ${creds.workspaceId}`);
+    debug(`[ApiFetcher] authCookie length: ${creds.authCookie.length}`);
+    debug(`[ApiFetcher] authCookie (masked): ${this.credentials.maskCookie(creds.authCookie)}`);
+
+    // Cookie header must include the name 'auth='
+    const cookieHeader = creds.authCookie.startsWith('auth=') 
+      ? creds.authCookie 
+      : `auth=${creds.authCookie}`;
+
     const url = 'https://console.opencode.ai/zen/go/v1/usage';
+    debug(`[ApiFetcher] URL: ${url}`);
+    
     let response: Response;
     try {
       response = await this.fetchFn(url, {
         headers: {
-          Cookie: creds.authCookie,
+          Cookie: cookieHeader,
         },
       });
     } catch (err) {
+      debug(`[ApiFetcher] network error: ${err instanceof Error ? err.message : String(err)}`);
       throw new NetworkError(err instanceof Error ? err.message : 'Network request failed');
     }
 
+    debug(`[ApiFetcher] response status: ${response.status}`);
+    debug(`[ApiFetcher] response ok: ${response.ok}`);
+    // SECURITY: Only log safe header names, never values
+    const safeHeaderNames = ['content-type', 'content-length', 'date', 'x-request-id'];
+    const safeHeaders = Object.fromEntries(
+      [...response.headers.entries()].filter(([k]) => safeHeaderNames.includes(k.toLowerCase()))
+    );
+    debug(`[ApiFetcher] response headers (safe): ${JSON.stringify(safeHeaders)}`);
+
     if (!response.ok) {
+      debug(`[ApiFetcher] HTTP error: ${response.status}`);
       throw new NetworkError(`HTTP ${response.status}`, response.status);
     }
 
     const data = (await response.json()) as Record<string, unknown>;
+    // SECURITY: Only log known-safe keys, never dump full response
+    const safeKeys = ['rolling', 'weekly', 'monthly'];
+    const safeData = Object.fromEntries(
+      Object.entries(data).filter(([k]) => safeKeys.includes(k))
+    );
+    debug(`[ApiFetcher] response data keys: ${Object.keys(data).join(', ')}`);
+    debug(`[ApiFetcher] response data (safe): ${JSON.stringify(safeData).substring(0, 100)}`);
+    
     return this.normalizeResponse(data);
   }
 

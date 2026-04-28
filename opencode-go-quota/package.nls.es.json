@@ -1,0 +1,16 @@
+{
+  "command.configure.title": "OpenCode Go: Configurar Credenciales",
+  "command.refresh.title": "OpenCode Go: Actualizar Quota",
+  "command.showDetails.title": "OpenCode Go: Mostrar Detalles",
+  "command.exportHistory.title": "OpenCode Go: Exportar Historial",
+  "command.openDashboard.title": "OpenCode Go: Abrir Dashboard",
+  "command.clearCredentials.title": "OpenCode Go: Limpiar Credenciales",
+  "command.selectDisplayWindow.title": "OpenCode Go: Seleccionar Ventana",
+  "configuration.title": "Monitor de Quota OpenCode Go",
+  "configuration.pollIntervalSeconds.description": "Frecuencia de actualización de quota (segundos)",
+  "configuration.warningThreshold.description": "Porcentaje de uso para activar color de advertencia (amarillo)",
+  "configuration.errorThreshold.description": "Porcentaje de uso para activar color de error (rojo)",
+  "configuration.fetcherStrategy.description": "Estrategia de obtención de datos: auto-detectar, solo API, o solo scraping",
+  "configuration.debug.description": "Activar logging de depuración",
+  "configuration.displayWindow.description": "Ventana de quota a mostrar en la barra de estado"
+}
