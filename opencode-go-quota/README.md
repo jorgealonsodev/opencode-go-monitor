@@ -1,6 +1,6 @@
 # OpenCode Go Quota Monitor
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/your-org/opencode-go-quota)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Real-time OpenCode Go quota monitoring in your VSCode status bar. Available in **English** and **Spanish**.
@@ -33,7 +33,7 @@ Real-time OpenCode Go quota monitoring in your VSCode status bar. Available in *
 
 ### Installation
 
-1. Download the `.vsix` file from the [releases page](https://github.com/your-org/opencode-go-quota/releases)
+1. Download the `.vsix` file from the [releases page](https://github.com/jorgealonsodev/opencode-go-monitor/releases)
 2. Open VSCode
 3. Go to the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`)
 4. Click the `...` menu (More Actions) and select **Install from VSIX...**
