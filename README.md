@@ -27,7 +27,7 @@ A VSCode extension for real-time OpenCode Go quota monitoring in your status bar
 
 ## Screenshots
 
-![OpenCode Go Quota Tooltip](opencode-go-quota/screenshots/tooltip.jpg)
+![OpenCode Go Quota Tooltip](opencode-go-quota/screenshots/tooltip.png)
 
 *Hover over the status bar item to see detailed progress bars for all three quota windows.*
 
