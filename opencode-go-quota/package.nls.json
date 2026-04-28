@@ -10,7 +10,6 @@
   "configuration.pollIntervalSeconds.description": "How often to poll for quota updates (seconds)",
   "configuration.warningThreshold.description": "Usage percentage to trigger warning color (yellow)",
   "configuration.errorThreshold.description": "Usage percentage to trigger error color (red)",
-  "configuration.fetcherStrategy.description": "Data fetcher strategy: auto-detect, API-only, or scraping-only",
   "configuration.debug.description": "Enable debug logging",
   "configuration.displayWindow.description": "Which quota window to display in the status bar"
 }

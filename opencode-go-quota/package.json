@@ -76,16 +76,6 @@
           "maximum": 100,
           "description": "%configuration.errorThreshold.description%"
         },
-        "opencodeGoQuota.fetcherStrategy": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "api",
-            "scraping"
-          ],
-          "default": "auto",
-          "description": "%configuration.fetcherStrategy.description%"
-        },
         "opencodeGoQuota.debug": {
           "type": "boolean",
           "default": false,

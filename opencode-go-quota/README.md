@@ -12,7 +12,7 @@ Real-time OpenCode Go quota monitoring in your VSCode status bar. Available in *
 - **Progress bars on hover** — Hover over the status bar item to see detailed progress bars for rolling, weekly, and monthly usage
 - **Selectable display window** — Choose which quota window to display: Rolling, Weekly, or Monthly
 - **Historical tracking and exhaustion prediction** — Tracks usage over time and predicts when you might exhaust your quota using linear regression
-- **Dual backend (API + scraping with auto-fallback)** — Automatically detects and uses the official API when available, falling back to HTML scraping for maximum compatibility
+- **HTML scraping backend** — Fetches quota data directly from the OpenCode web console using your session cookie (API mode is reserved for a future release)
 - **Bilingual (EN/ES)** — Automatically detects your VSCode language and displays all messages in English or Spanish
 
 ## Screenshots
@@ -77,7 +77,6 @@ All settings are available under `OpenCode Go Quota Monitor` in VSCode settings:
 | `opencodeGoQuota.pollIntervalSeconds` | `number` | `300` | How often to poll for quota updates (minimum: 60s) |
 | `opencodeGoQuota.warningThreshold` | `number` | `80` | Usage percentage to trigger warning color (yellow) |
 | `opencodeGoQuota.errorThreshold` | `number` | `95` | Usage percentage to trigger error color (red) |
-| `opencodeGoQuota.fetcherStrategy` | `string` | `"auto"` | Data fetcher strategy: `auto`, `api`, or `scraping` |
 | `opencodeGoQuota.displayWindow` | `string` | `"rolling"` | Which quota window to display: `rolling`, `weekly`, or `monthly` |
 | `opencodeGoQuota.debug` | `boolean` | `false` | Enable debug logging to the Output panel |
 
