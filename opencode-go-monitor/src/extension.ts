@@ -88,7 +88,7 @@ function createStatusBarItemAdapter(alignment: number, priority: number): import
       }
     },
     get command() {
-      return item.command;
+      return item.command as string | undefined;
     },
     set command(value: string | undefined) {
       item.command = value;
@@ -120,7 +120,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   outputChannel.appendLine(`Extension path: ${context.extensionPath}`);
 
   // Expose debug function globally for fetchers to use
-  (globalThis as any).opencodeGoQuotaDebug = (msg: string) => {
+  globalThis.opencodeGoQuotaDebug = (msg: string) => {
     outputChannel.appendLine(msg);
   };
 

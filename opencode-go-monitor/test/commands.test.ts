@@ -32,6 +32,7 @@ function createMockWindow(): WindowLike {
     showInformationMessage: vi.fn(),
     showErrorMessage: vi.fn(),
     showSaveDialog: vi.fn(),
+    showQuickPick: vi.fn(),
   };
 }
 
@@ -49,6 +50,7 @@ function createMockCommands(): {
       registeredCallback = cb;
       return { dispose: vi.fn() };
     }),
+    executeCommand: vi.fn(),
   };
 
   return {
@@ -420,7 +422,7 @@ describe('registerExportHistoryCommand', () => {
     history = createMockHistoryStorage();
     window = createMockWindow();
 
-    registerExportHistoryCommand(history, window, commands);
+    registerExportHistoryCommand(history, window, commands, mockT);
     expect(commands.registerCommand).toHaveBeenCalledWith(
       'opencodeGoQuota.exportHistory',
       expect.any(Function),
@@ -545,7 +547,7 @@ describe('registerClearCredentialsCommand', () => {
   });
 
   it('registers the correct command', () => {
-    registerClearCredentialsCommand(credentials, statusBar, window, commands);
+    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
     expect(commands.registerCommand).toHaveBeenCalledWith(
       'opencodeGoQuota.clearCredentials',
       expect.any(Function),
