@@ -6,7 +6,7 @@
   "command.openDashboard.title": "OpenCode Go: Abrir Dashboard",
   "command.clearCredentials.title": "OpenCode Go: Limpiar Credenciales",
   "command.selectDisplayWindow.title": "OpenCode Go: Seleccionar Ventana",
-  "configuration.title": "Monitor de Quota OpenCode Go",
+  "configuration.title": "Monitor de OpenCode Go",
   "configuration.pollIntervalSeconds.description": "Frecuencia de actualización de quota (segundos)",
   "configuration.warningThreshold.description": "Porcentaje de uso para activar color de advertencia (amarillo)",
   "configuration.errorThreshold.description": "Porcentaje de uso para activar color de error (rojo)",

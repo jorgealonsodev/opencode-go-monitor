@@ -6,7 +6,7 @@
   - **Files**: package.json
   - **Dependencies**: None
   - **Acceptance criteria**:
-    - Valid package.json with name "opencode-go-quota"
+    - Valid package.json with name "opencode-go-monitor"
     - activationEvents: "onStartupFinished"
     - Contributes: commands, configuration, statusBarItem
     - Dependencies: undici (Node 18+ built-in), cheerio

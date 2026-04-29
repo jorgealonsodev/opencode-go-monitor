@@ -21,7 +21,7 @@ export function registerExportHistoryCommand(
     }
 
     const uri = await window.showSaveDialog({
-      defaultUri: uriFactory.file('opencode-go-quota-history.json'),
+      defaultUri: uriFactory.file('opencode-go-monitor-history.json'),
       filters: {
         'JSON files': ['json'],
         'All files': ['*'],

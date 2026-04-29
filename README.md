@@ -1,7 +1,7 @@
-# OpenCode Go Quota Monitor
+# OpenCode Go Monitor
 
 <p align="center">
-  <img src="opencode-go-quota/icon.png" alt="OpenCode Go Quota Monitor" width="128" height="128">
+  <img src="opencode-go-monitor/icon.png" alt="OpenCode Go Monitor" width="128" height="128">
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@ A VSCode extension for real-time OpenCode Go quota monitoring in your status bar
 
 ## Overview
 
-**OpenCode Go Quota Monitor** is a VSCode extension that brings real-time quota visibility directly to your editor. Track your OpenCode Go usage without leaving your development environment, with intelligent dual-backend fetching, historical trend prediction, and full bilingual support (English/Spanish).
+**OpenCode Go Monitor** is a VS Code: extension that brings real-time quota visibility directly to your editor. Track your OpenCode Go usage without leaving your development environment, with intelligent dual-backend fetching, historical trend prediction, and full bilingual support (English/Spanish).
 
 ## Features
 
@@ -27,7 +27,7 @@ A VSCode extension for real-time OpenCode Go quota monitoring in your status bar
 
 ## Screenshots
 
-![OpenCode Go Quota Tooltip](opencode-go-quota/screenshots/tooltip.png)
+![OpenCode Go Quota Tooltip](opencode-go-monitor/screenshots/tooltip.png)
 
 *Hover over the status bar item to see detailed progress bars for all three quota windows.*
 
@@ -46,7 +46,7 @@ A VSCode extension for real-time OpenCode Go quota monitoring in your status bar
 
 ```bash
 git clone https://github.com/jorgealonsodev/opencode-go-monitor.git
-cd opencode-go-monitor/opencode-go-quota
+cd opencode-go-monitor/opencode-go-monitor
 npm install
 npm run build
 npm run package
@@ -93,7 +93,7 @@ npm run package
 
 ```
 opencode-go-monitor/
-├── opencode-go-quota/          # VSCode Extension
+├── opencode-go-monitor/          # VSCode Extension
 │   ├── src/
 │   │   ├── commands/           # VSCode command handlers
 │   │   ├── domain/             # Core types, formatting, prediction
@@ -107,7 +107,7 @@ opencode-go-monitor/
 │   ├── package.nls.json        # English translations
 │   ├── package.nls.es.json     # Spanish translations
 │   └── README.md               # Extension documentation
-├── PRD-opencode-go-quota-vscode.md  # Product Requirements Document
+├── PRD-opencode-go-monitor-vscode.md  # Product Requirements Document
 └── README.md                   # This file
 ```
 
@@ -125,7 +125,7 @@ This extension prioritizes security:
 
 ```bash
 # Install dependencies
-cd opencode-go-quota
+cd opencode-go-monitor
 npm install
 
 # Compile TypeScript
@@ -156,7 +156,7 @@ Your session cookie has expired. Follow the steps above to get a new one.
 
 ### Debug mode
 
-Enable debug logging by setting `opencodeGoQuota.debug` to `true`. View logs in `View → Output → OpenCode Go Quota`.
+Enable debug logging by setting `opencodeGoQuota.debug` to `true`. View logs in `View → Output → OpenCode Go Monitor`.
 
 ## License
 

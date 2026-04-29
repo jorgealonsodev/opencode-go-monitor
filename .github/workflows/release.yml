@@ -10,7 +10,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: opencode-go-quota
+    working-directory: opencode-go-monitor
 
 jobs:
   release:
@@ -28,11 +28,11 @@ jobs:
         run: npm run build
 
       - name: Package .vsix
-        run: npx vsce package --out opencode-go-quota.vsix
+        run: npx vsce package --out opencode-go-monitor.vsix
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: opencode-go-quota/opencode-go-quota.vsix
+          files: opencode-go-monitor/opencode-go-monitor.vsix
           generate_release_notes: true
           fail_on_unmatched_files: true

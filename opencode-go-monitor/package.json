@@ -1,7 +1,7 @@
 {
-  "name": "opencode-go-quota",
-  "displayName": "OpenCode Go Quota Monitor",
-  "description": "Real-time OpenCode Go quota monitoring in your VSCode status bar",
+  "name": "opencode-go-monitor",
+  "displayName": "OpenCode Go Monitor",
+  "description": "Real-time OpenCode Go monitoring in your VS Code: status bar",
   "version": "0.1.0",
   "publisher": "jorgealonsodev",
   "icon": "icon.png",
@@ -104,7 +104,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jorgealonsodev/opencode-go-monitor"
+    "url": "https://github.com/jorgealonsodev/opencode-go-monitor",
+    "directory": "opencode-go-monitor"
   },
   "scripts": {
     "compile": "tsc",

@@ -1,9 +1,9 @@
-# OpenCode Go Quota Monitor
+# OpenCode Go Monitor
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Real-time OpenCode Go quota monitoring in your VSCode status bar. Available in **English** and **Spanish**.
+Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **English** and **Spanish**.
 
 ## Features
 
@@ -17,7 +17,7 @@ Real-time OpenCode Go quota monitoring in your VSCode status bar. Available in *
 
 ## Screenshots
 
-![OpenCode Go Quota Tooltip](screenshots/tooltip.jpg)
+![OpenCode Go Monitor Tooltip](https://raw.githubusercontent.com/jorgealonsodev/opencode-go-monitor/develop/opencode-go-monitor/screenshots/tooltip.jpg)
 
 *Hover over the status bar item to see detailed progress bars for all three quota windows (Rolling, Weekly, Monthly).*
 
@@ -70,7 +70,7 @@ You need two pieces of information from your OpenCode account: `workspaceId` and
 
 ## Configuration
 
-All settings are available under `OpenCode Go Quota Monitor` in VSCode settings:
+All settings are available under `OpenCode Go Monitor` in VS Code: settings:
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
@@ -152,7 +152,7 @@ Your session cookie has expired. Follow the steps above to get a new one.
 
 ### Debug mode
 
-Enable debug logging by setting `opencodeGoQuota.debug` to `true` in settings. View logs in `View → Output → OpenCode Go Quota`.
+Enable debug logging by setting `opencodeGoQuota.debug` to `true` in settings. View logs in `View → Output → OpenCode Go Monitor`.
 
 ## License
 
