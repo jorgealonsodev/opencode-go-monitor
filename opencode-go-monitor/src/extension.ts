@@ -99,6 +99,12 @@ function createStatusBarItemAdapter(alignment: number, priority: number): import
     set color(value: string | import('./ui/statusBar').ThemeColor | undefined) {
       item.color = value as any;
     },
+    get backgroundColor() {
+      return item.backgroundColor as string | import('./ui/statusBar').ThemeColor | undefined;
+    },
+    set backgroundColor(value: string | import('./ui/statusBar').ThemeColor | undefined) {
+      item.backgroundColor = value as any;
+    },
     show: () => item.show(),
     hide: () => item.hide(),
     dispose: () => item.dispose(),

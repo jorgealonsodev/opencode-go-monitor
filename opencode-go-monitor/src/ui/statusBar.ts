@@ -11,6 +11,7 @@ export interface StatusBarItem {
   tooltip: string | { value: string; isTrusted?: boolean } | undefined;
   command: string | undefined;
   color: string | ThemeColor | undefined;
+  backgroundColor: string | ThemeColor | undefined;
   show(): void;
   hide(): void;
   dispose(): void;
@@ -85,11 +86,11 @@ export class StatusBarManager {
     this._item.command = 'opencodeGoQuota.statusBarClick';
 
     if (window.usagePercent >= thresholds.error) {
-      this._item.color = { id: 'statusBarItem.errorBackground' };
+      this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
     } else if (window.usagePercent >= thresholds.warning) {
-      this._item.color = { id: 'statusBarItem.warningBackground' };
+      this._item.backgroundColor = { id: 'statusBarItem.warningBackground' };
     } else {
-      this._item.color = undefined;
+      this._item.backgroundColor = undefined;
     }
   }
 
@@ -101,22 +102,22 @@ export class StatusBarManager {
     switch (state) {
       case 'setup':
         this._item.text = this.t.stateSetup;
-        this._item.color = undefined;
+        this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'loading':
         this._item.text = this.t.stateLoading;
-        this._item.color = undefined;
+        this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'auth':
         this._item.text = this.t.stateAuthExpired;
-        this._item.color = { id: 'statusBarItem.errorBackground' };
+        this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'error':
         this._item.text = this.t.stateError;
-        this._item.color = { id: 'statusBarItem.errorBackground' };
+        this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'active':
