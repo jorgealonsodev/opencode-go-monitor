@@ -38,7 +38,27 @@ Releases **MUST** follow GitFlow. Never cut a release directly from `develop`.
 - NEVER push a release commit to `master` without going through a release branch
 - ALWAYS merge back into `develop` to keep histories aligned
 
-### 2. Version Bump Location
+### 2. CI Branch Validation (GitFlow)
+
+Continuous Integration **MUST** run on all long-lived and release-related branches. Do not assume CI is only for `master`.
+
+| Branch Pattern | CI Required | Notes |
+|----------------|-------------|-------|
+| `develop`      | Yes         | Main integration branch |
+| `master`       | Yes         | Production / stable branch |
+| `release/**`   | Yes         | Release candidate branches |
+| `hotfix/**`    | Yes         | Emergency fix branches |
+
+**Pull Request Validation:**
+- PRs **MUST** target `develop` or `master`
+- CI must pass before merging any PR
+
+**Rules:**
+- NEVER disable CI for `develop`, `release/*`, or `hotfix/*`
+- ALWAYS ensure PR validation runs against both `develop` and `master`
+- This is part of the standard GitFlow process for this repo
+
+### 3. Version Bump Location
 
 Only `opencode-go-monitor/package.json` contains the extension version.
 
@@ -53,7 +73,7 @@ Also update `README.md` version badge if present:
 <img src="https://img.shields.io/badge/version-x.y.z-blue" alt="Version">
 ```
 
-### 3. Release Notes Format (STRICT — NO ICONS/EMOJIS)
+### 4. Release Notes Format (STRICT — NO ICONS/EMOJIS)
 
 - **NO icons or emojis anywhere in the release notes**
 - Title: `vMAJOR.MINOR.PATCH - [Brief summary of main change]`
@@ -69,7 +89,7 @@ Also update `README.md` version badge if present:
 
 See [assets/RELEASE-NOTES-TEMPLATE.md](assets/RELEASE-NOTES-TEMPLATE.md) for the full template.
 
-### 4. VSIX Asset
+### 5. VSIX Asset
 
 The release workflow packages the extension automatically on tag push, but verify locally:
 

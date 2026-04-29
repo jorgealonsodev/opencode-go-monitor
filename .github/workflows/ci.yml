@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [develop, master]
+    branches:
+      - develop
+      - master
+      - 'release/**'
+      - 'hotfix/**'
   pull_request:
-    branches: [develop, master]
+    branches:
+      - develop
+      - master
 
 defaults:
   run:

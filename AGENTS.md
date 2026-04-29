@@ -6,7 +6,7 @@ This file registers project-specific skills for AI agents working in this reposi
 
 | Skill | Description | Path |
 |-------|-------------|------|
-| `opencode-go-monitor-release` | Release workflow for the VSCode extension — GitFlow branching, version bump, release notes format, VSIX packaging | [SKILL.md](skills/opencode-go-monitor-release/SKILL.md) |
+| `opencode-go-monitor-release` | Release workflow for the VSCode extension — GitFlow branching, CI branch validation, version bump, release notes format, VSIX packaging | [SKILL.md](skills/opencode-go-monitor-release/SKILL.md) |
 
 ## How to Use
 
