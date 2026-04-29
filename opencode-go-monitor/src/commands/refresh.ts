@@ -24,11 +24,6 @@ export function registerRefreshCommand(
       const snapshot = await fetcherSelector.fetch();
       await historyStorage.append(snapshot);
       statusBarManager.update(snapshot, thresholds, displayWindow);
-      if (t) {
-        await window.showInformationMessage(t.msgQuotaRefreshed(Math.round(snapshot[displayWindow].usagePercent)));
-      } else {
-        await window.showInformationMessage(`Quota refreshed. Usage: ${Math.round(snapshot[displayWindow].usagePercent)}%.`);
-      }
     } catch (err) {
       statusBarManager.setState('error');
       if (err instanceof CredentialsError) {

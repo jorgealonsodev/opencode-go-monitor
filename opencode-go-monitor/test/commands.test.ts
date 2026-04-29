@@ -301,9 +301,7 @@ describe('registerRefreshCommand', () => {
     expect(fetcher.fetch).toHaveBeenCalled();
     expect(history.append).toHaveBeenCalledWith(snapshot);
     expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 80, error: 95 }, 'rolling');
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Quota refreshed'),
-    );
+    expect(window.showInformationMessage).not.toHaveBeenCalled();
   });
 
   it('sets error state and shows notification on failure', async () => {
