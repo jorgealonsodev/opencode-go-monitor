@@ -17,7 +17,7 @@ Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **Eng
 
 ## Screenshots
 
-![OpenCode Go Monitor Tooltip](https://raw.githubusercontent.com/jorgealonsodev/opencode-go-monitor/develop/opencode-go-monitor/screenshots/tooltip.jpg)
+![OpenCode Go Monitor Tooltip](https://raw.githubusercontent.com/jorgealonsodev/opencode-go-monitor/master/opencode-go-monitor/screenshots/tooltip.png)
 
 *Hover over the status bar item to see detailed progress bars for all three quota windows (Rolling, Weekly, Monthly).*
 
