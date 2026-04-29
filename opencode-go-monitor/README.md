@@ -1,6 +1,6 @@
 # OpenCode Go Monitor
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **English** and **Spanish**.

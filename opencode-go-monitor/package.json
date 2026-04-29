@@ -2,7 +2,7 @@
   "name": "opencode-go-monitor",
   "displayName": "OpenCode Go Monitor",
   "description": "Real-time OpenCode Go monitoring in your VS Code: status bar",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "jorgealonsodev",
   "icon": "icon.png",
   "engines": {
