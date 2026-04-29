@@ -111,7 +111,8 @@
     "compile": "tsc",
     "test": "vitest",
     "package": "vsce package",
-    "build": "node build.mjs"
+    "build": "node build.mjs --production",
+    "watch": "node build.mjs"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
