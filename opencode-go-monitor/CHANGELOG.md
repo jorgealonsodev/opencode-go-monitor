@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2] - 2026-05-02
+
+### Fixed
+- Status bar alert colors now work reliably across all VS Code themes. Switched from `backgroundColor` (inconsistent across themes) to foreground `color` with direct hex values (#f14c4c for error/auth expired, #cca700 for warning), matching the approach used by similar working extensions
+- Alert color now reflects the worst case among all three quota windows (rolling, weekly, monthly) instead of only the selected display window
+
+### Changed
+- Switched from GitFlow to master + worktrees workflow. Master is now the only long-lived branch; features use branches or worktrees
+- Updated CI to Node.js 20 and added `--no-dependencies` to vsce package to fix undici ReferenceError on Node 18
+
+### Documentation
+- Updated extension README with stable GitHub screenshot URL to fix vsce path rewriting in subfolder repos
+
 ## [0.1.1] - 2026-04-29
 
 ### Changed
