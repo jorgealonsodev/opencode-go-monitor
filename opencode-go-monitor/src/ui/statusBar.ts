@@ -85,11 +85,20 @@ export class StatusBarManager {
     this._item.tooltip = tooltip;
     this._item.command = 'opencodeGoQuota.statusBarClick';
 
-    if (window.usagePercent >= thresholds.error) {
-      this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
-    } else if (window.usagePercent >= thresholds.warning) {
-      this._item.backgroundColor = { id: 'statusBarItem.warningBackground' };
+    // Color reflects the WORST scenario among all windows
+    const maxPercent = Math.max(
+      snapshot.rolling.usagePercent,
+      snapshot.weekly.usagePercent,
+      snapshot.monthly.usagePercent
+    );
+    if (maxPercent >= thresholds.error) {
+      this._item.color = '#f14c4c';
+      this._item.backgroundColor = undefined;
+    } else if (maxPercent >= thresholds.warning) {
+      this._item.color = '#cca700';
+      this._item.backgroundColor = undefined;
     } else {
+      this._item.color = undefined;
       this._item.backgroundColor = undefined;
     }
   }
@@ -102,22 +111,26 @@ export class StatusBarManager {
     switch (state) {
       case 'setup':
         this._item.text = this.t.stateSetup;
+        this._item.color = undefined;
         this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'loading':
         this._item.text = this.t.stateLoading;
+        this._item.color = undefined;
         this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'auth':
         this._item.text = this.t.stateAuthExpired;
-        this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
+        this._item.color = '#f14c4c';
+        this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'error':
         this._item.text = this.t.stateError;
-        this._item.backgroundColor = { id: 'statusBarItem.errorBackground' };
+        this._item.color = '#f14c4c';
+        this._item.backgroundColor = undefined;
         this._item.tooltip = 'OpenCode Go Quota';
         break;
       case 'active':

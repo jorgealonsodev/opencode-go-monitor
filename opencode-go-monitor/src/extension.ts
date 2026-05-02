@@ -58,7 +58,7 @@ function createQuickPickAdapter<T extends QuickPickItem>(): QuickPick<T> {
 }
 
 function createStatusBarItemAdapter(alignment: number, priority: number): import('./ui/statusBar').StatusBarItem {
-  const item = vscode.window.createStatusBarItem(alignment as vscode.StatusBarAlignment, priority);
+  const item = vscode.window.createStatusBarItem('opencodeGoQuota', alignment as vscode.StatusBarAlignment, priority);
   return {
     get text() {
       return item.text;
@@ -97,13 +97,21 @@ function createStatusBarItemAdapter(alignment: number, priority: number): import
       return item.color;
     },
     set color(value: string | import('./ui/statusBar').ThemeColor | undefined) {
-      item.color = value as any;
+      if (value && typeof value === 'object' && 'id' in value) {
+        item.color = new vscode.ThemeColor(value.id);
+      } else {
+        item.color = value as any;
+      }
     },
     get backgroundColor() {
       return item.backgroundColor as string | import('./ui/statusBar').ThemeColor | undefined;
     },
     set backgroundColor(value: string | import('./ui/statusBar').ThemeColor | undefined) {
-      item.backgroundColor = value as any;
+      if (value && typeof value === 'object' && 'id' in value) {
+        item.backgroundColor = new vscode.ThemeColor(value.id);
+      } else {
+        item.backgroundColor = value as any;
+      }
     },
     show: () => item.show(),
     hide: () => item.hide(),
