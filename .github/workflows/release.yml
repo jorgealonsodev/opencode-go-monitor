@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
 
       - run: npm ci
 
@@ -28,7 +28,7 @@ jobs:
         run: npm run build
 
       - name: Package .vsix
-        run: npx vsce package --out opencode-go-monitor.vsix
+        run: npx vsce package --no-dependencies --out opencode-go-monitor.vsix
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
