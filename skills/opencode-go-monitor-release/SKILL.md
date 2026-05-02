@@ -19,44 +19,36 @@ metadata:
 
 ## Critical Patterns
 
-### 1. GitFlow Release Branching (MANDATORY)
+### 1. Master + Worktrees Workflow (MANDATORY)
 
-Releases **MUST** follow GitFlow. Never cut a release directly from `develop`.
+This repo uses a **simplified trunk-based workflow**: `master` is the only long-lived branch. Development happens in **feature branches** or **git worktrees** — never in a `develop` branch.
 
-| Step | Action | Target Branch |
-|------|--------|---------------|
-| 1 | Create `release/x.y.z` from `develop` | `release/x.y.z` |
-| 2 | Bump version on release branch | `release/x.y.z` |
-| 3 | Prepare changelog / release notes | `release/x.y.z` |
-| 4 | Merge release branch into `master` | `master` |
-| 5 | Create annotated tag `vx.y.z` on `master` | `master` |
-| 6 | Push `master` + tag | `master` |
-| 7 | Merge `master` back into `develop` | `develop` |
+| Step | Action |
+|------|--------|
+| 1 | Work on a feature branch or in a worktree |
+| 2 | Open PR to `master` |
+| 3 | Merge PR to `master` (CI must pass) |
+| 4 | To release: bump version on `master`, tag `vx.y.z`, push |
 
 **Rules:**
-- NEVER create a tag directly on `develop`
-- NEVER push a release commit to `master` without going through a release branch
-- ALWAYS merge back into `develop` to keep histories aligned
+- NEVER create a `develop` branch
+- NEVER create release branches — tag directly on `master`
+- ALWAYS use PRs to merge into `master`
+- Use `git worktree` for parallel streams of work instead of long-lived branches
 
-### 2. CI Branch Validation (GitFlow)
+### 2. CI Branch Validation
 
-Continuous Integration **MUST** run on all long-lived and release-related branches. Do not assume CI is only for `master`.
+Continuous Integration runs on:
 
 | Branch Pattern | CI Required | Notes |
 |----------------|-------------|-------|
-| `develop`      | Yes         | Main integration branch |
-| `master`       | Yes         | Production / stable branch |
-| `release/**`   | Yes         | Release candidate branches |
-| `hotfix/**`    | Yes         | Emergency fix branches |
-
-**Pull Request Validation:**
-- PRs **MUST** target `develop` or `master`
-- CI must pass before merging any PR
+| `master`       | Yes         | Main and only long-lived branch |
+| `v*` tags      | Yes         | Release builds |
+| PRs to `master`| Yes         | Must pass before merge |
 
 **Rules:**
-- NEVER disable CI for `develop`, `release/*`, or `hotfix/*`
-- ALWAYS ensure PR validation runs against both `develop` and `master`
-- This is part of the standard GitFlow process for this repo
+- NEVER disable CI for `master`
+- ALL changes to `master` go through a PR with passing CI
 
 ### 3. Version Bump Location
 
@@ -110,37 +102,40 @@ Binaries and SHA-256 checksums are attached below.
 ### Start a release
 
 ```bash
-# 1. Ensure develop is up to date
-git checkout develop
-git pull origin develop
+# 1. Ensure master is up to date
+git checkout master
+git pull origin master
 
-# 2. Create release branch
-git checkout -b release/x.y.z
-
-# 3. Bump version in opencode-go-monitor/package.json
-# 4. Update README.md badge if needed
-# 5. Prepare release notes in assets/RELEASE-NOTES-TEMPLATE.md or draft
+# 2. Bump version in opencode-go-monitor/package.json
+# 3. Update README.md badge if needed
+# 4. Prepare release notes in assets/RELEASE-NOTES-TEMPLATE.md or draft
 
 git add -A
 git commit -m "chore(release): prepare vx.y.z"
 
-# 6. Merge to master
-git checkout master
-git pull origin master
-git merge --no-ff release/x.y.z -m "chore(release): merge vx.y.z into master"
-
-# 7. Tag
+# 5. Tag
 git tag -a vx.y.z -m "Release vx.y.z"
 
-# 8. Push master + tag
+# 6. Push master + tag
 git push origin master
 git push origin vx.y.z
+```
 
-# 9. Merge back to develop
-git checkout develop
-git pull origin develop
-git merge --no-ff master -m "chore(release): merge master back into develop"
-git push origin develop
+### Work on a feature (using worktrees)
+
+```bash
+# 1. Create a new worktree for the feature
+git worktree add ../opencode-go-monitor-feature-name feature-branch-name
+cd ../opencode-go-monitor-feature-name
+
+# 2. Work, commit, push
+git push -u origin feature-branch-name
+
+# 3. Open PR to master via GitHub
+# 4. After merge, clean up
+cd ..
+git worktree remove opencode-go-monitor-feature-name
+git branch -d feature-branch-name
 ```
 
 ### Verify VSIX locally
