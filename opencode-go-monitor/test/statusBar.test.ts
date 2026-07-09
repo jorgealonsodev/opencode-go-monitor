@@ -141,6 +141,7 @@ describe('StatusBarManager', () => {
       manager.create();
       manager.update(makeSnapshot(50), { warning: 80, error: 95 });
 
+      expect(item.color).toBeUndefined();
       expect(item.backgroundColor).toBeUndefined();
     });
 
@@ -150,7 +151,8 @@ describe('StatusBarManager', () => {
       manager.create();
       manager.update(makeSnapshot(80), { warning: 80, error: 95 });
 
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.warningBackground' });
+      expect(item.color).toBe('#cca700');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('sets warning color between warning and error', () => {
@@ -159,7 +161,8 @@ describe('StatusBarManager', () => {
       manager.create();
       manager.update(makeSnapshot(90), { warning: 80, error: 95 });
 
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.warningBackground' });
+      expect(item.color).toBe('#cca700');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('sets error color when at error threshold', () => {
@@ -168,7 +171,8 @@ describe('StatusBarManager', () => {
       manager.create();
       manager.update(makeSnapshot(95), { warning: 80, error: 95 });
 
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
+      expect(item.color).toBe('#f14c4c');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('sets error color above error threshold', () => {
@@ -177,7 +181,8 @@ describe('StatusBarManager', () => {
       manager.create();
       manager.update(makeSnapshot(100), { warning: 80, error: 95 });
 
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
+      expect(item.color).toBe('#f14c4c');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('does nothing when item has not been created', () => {
@@ -215,7 +220,8 @@ describe('StatusBarManager', () => {
       manager.setState('auth');
 
       expect(item.text).toBe('$(warning) OC Go: auth expired');
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
+      expect(item.color).toBe('#f14c4c');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('sets error state with error color', () => {
@@ -225,7 +231,8 @@ describe('StatusBarManager', () => {
       manager.setState('error');
 
       expect(item.text).toBe('$(warning) OC Go: error');
-      expect(item.backgroundColor).toEqual({ id: 'statusBarItem.errorBackground' });
+      expect(item.color).toBe('#f14c4c');
+      expect(item.backgroundColor).toBeUndefined();
     });
 
     it('active state does not change text', () => {
