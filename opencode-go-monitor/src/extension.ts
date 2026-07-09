@@ -158,6 +158,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   
   if (hasCreds) {
     const creds = await credentialsStorage.getCredentials();
+    statusBarManager.setWorkspaceId(creds?.workspaceId);
     outputChannel.appendLine(`[init] workspaceId: ${creds?.workspaceId}`);
     outputChannel.appendLine(`[init] authCookie (masked): ${creds ? credentialsStorage.maskCookie(creds.authCookie) : 'N/A'}`);
   }

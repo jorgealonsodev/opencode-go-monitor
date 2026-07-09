@@ -100,7 +100,7 @@ All commands are available from the VSCode Command Palette (`Ctrl+Shift+P` / `Cm
 
 The status bar item shows:
 - **Text**: `OC Go Rolling: 13% · 3h 23m` (or Weekly/Monthly depending on your selection)
-- **Hover tooltip**: Detailed view with progress bars for all three windows, data source, and last update time
+- **Hover tooltip**: Detailed view with progress bars for all three windows, active workspace, data source, and last update time
 - **Colors**: Green (normal), Yellow (≥80%), Red (≥95%)
 
 Click the status bar item to open the details QuickPick.
