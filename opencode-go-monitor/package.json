@@ -110,6 +110,7 @@
   "scripts": {
     "compile": "tsc",
     "test": "vitest",
+    "vscode:prepublish": "npm run build",
     "package": "vsce package",
     "build": "node build.mjs --production",
     "watch": "node build.mjs"
