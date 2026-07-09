@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3] - 2026-07-09
+
+### Added
+- Status bar hover tooltip now shows the active workspace in the footer, alongside the data source and last-updated time
+
+### Fixed
+- Aligned status bar color unit tests with the foreground-color behavior introduced in 0.1.2 (they still asserted the old `backgroundColor` theme ids)
+
 ## [0.1.2] - 2026-05-02
 
 ### Fixed
