@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/jorgealonsodev/opencode-go-monitor/releases"><img src="https://img.shields.io/badge/version-0.1.1-blue" alt="Version"></a>
+  <a href="https://github.com/jorgealonsodev/opencode-go-monitor/releases"><img src="https://img.shields.io/badge/version-0.1.3-blue" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 </p>
 
@@ -21,7 +21,7 @@ A VSCode extension for real-time OpenCode Go quota monitoring in your status bar
 - **Dual-Backend Fetching**: API-first with HTML scraping fallback
 - **Historical Tracking**: Local storage with linear regression exhaustion prediction
 - **Bilingual Interface**: Automatic EN/ES detection based on VSCode locale
-- **Rich Hover Tooltips**: Progress bars for Rolling, Weekly, and Monthly windows
+- **Rich Hover Tooltips**: Progress bars for Rolling, Weekly, and Monthly windows, plus the active workspace, data source, and last update time
 - **Smart Interaction**: Single-click refresh, double-click details
 - **Global Credential Persistence**: Secure storage via VSCode SecretStorage (OS Keychain)
 
