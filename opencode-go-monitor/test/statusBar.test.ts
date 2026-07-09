@@ -39,6 +39,7 @@ function createMockTranslations(): Translations {
     statusBarWeekly: 'Weekly',
     statusBarMonthly: 'Monthly',
     statusBarReset: (time) => `resets in ${time}`,
+    statusBarWorkspace: (id) => `Workspace: ${id}`,
     statusBarSource: (source) => `Source: ${source}`,
     statusBarUpdated: (time) => `Updated: ${time}`,
     stateSetup: '$(gear) OC Go: setup',
@@ -143,6 +144,27 @@ describe('StatusBarManager', () => {
 
       expect(item.color).toBeUndefined();
       expect(item.backgroundColor).toBeUndefined();
+    });
+
+    it('shows the workspace in the tooltip footer when set', () => {
+      const { factory, item } = createMockFactory();
+      const manager = new StatusBarManager(factory, createMockTranslations());
+      manager.create();
+      manager.setWorkspaceId('workspace-abc123');
+      manager.update(makeSnapshot(50), { warning: 80, error: 95 });
+
+      const tooltip = item.tooltip as string;
+      expect(tooltip).toContain('Workspace: workspace-abc123');
+      expect(tooltip).toContain('Workspace: workspace-abc123 | Source: api');
+    });
+
+    it('omits the workspace from the tooltip footer when not set', () => {
+      const { factory, item } = createMockFactory();
+      const manager = new StatusBarManager(factory, createMockTranslations());
+      manager.create();
+      manager.update(makeSnapshot(50), { warning: 80, error: 95 });
+
+      expect(item.tooltip as string).not.toContain('Workspace:');
     });
 
     it('sets warning color when at warning threshold', () => {

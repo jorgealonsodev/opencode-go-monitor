@@ -27,11 +27,16 @@ function createProgressBar(percent: number, length: number = 20): string {
 
 export class StatusBarManager {
   private _item: StatusBarItem | undefined;
+  private _workspaceId: string | undefined;
 
   constructor(
     private readonly factory: StatusBarItemFactory,
     private readonly t: Translations,
   ) {}
+
+  setWorkspaceId(workspaceId: string | undefined): void {
+    this._workspaceId = workspaceId;
+  }
 
   create(): StatusBarItem {
     this._item = this.factory(2, 100); // Right = 2, priority = 100
@@ -78,7 +83,13 @@ export class StatusBarManager {
       `${monthlyBar} \`${snapshot.monthly.usagePercent}%\` (${this.t.statusBarReset(formatTime(snapshot.monthly.resetsInSeconds))})`,
       '',
       `---`,
-      `${this.t.statusBarSource(snapshot.source)} | ${this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString())}`,
+      [
+        this._workspaceId ? this.t.statusBarWorkspace(this._workspaceId) : undefined,
+        this.t.statusBarSource(snapshot.source),
+        this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString()),
+      ]
+        .filter(Boolean)
+        .join(' | '),
     ].join('\n');
 
     this._item.text = this.t.statusBarText(label, pct, reset);

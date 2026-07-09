@@ -8,6 +8,7 @@ export interface Translations {
   statusBarWeekly: string;
   statusBarMonthly: string;
   statusBarReset: (time: string) => string;
+  statusBarWorkspace: (id: string) => string;
   statusBarSource: (source: string) => string;
   statusBarUpdated: (time: string) => string;
   
@@ -81,6 +82,7 @@ const en: Translations = {
   statusBarWeekly: 'Weekly',
   statusBarMonthly: 'Monthly',
   statusBarReset: (time) => `resets in ${time}`,
+  statusBarWorkspace: (id) => `Workspace: ${id}`,
   statusBarSource: (source) => `Source: ${source === 'api' ? 'API' : 'Web'}`,
   statusBarUpdated: (time) => `Updated: ${time}`,
   
@@ -154,6 +156,7 @@ const es: Translations = {
   statusBarWeekly: 'Semanal',
   statusBarMonthly: 'Mensual',
   statusBarReset: (time) => `reset en ${time}`,
+  statusBarWorkspace: (id) => `Workspace: ${id}`,
   statusBarSource: (source) => `Fuente: ${source === 'api' ? 'API' : 'Web'}`,
   statusBarUpdated: (time) => `Actualizado: ${time}`,
   
