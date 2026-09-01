@@ -93,7 +93,7 @@ export class ScrapingFetcher implements QuotaFetcher {
 
   private parseHtml(html: string): QuotaSnapshot {
     // SolidJS SSR hydration format. Each usage window has its own $R reference:
-    // rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:860207,limit:1200000000}
+    // rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:1234567,limit:1000000000}
     // usagePercent may be fractional and may be followed by additional fields (usage, limit, ...),
     // so the pattern must not anchor on the closing brace.
     const extractWindow = (name: string): { status: 'ok' | 'error' | 'unknown'; resetsInSeconds: number; usagePercent: number } => {

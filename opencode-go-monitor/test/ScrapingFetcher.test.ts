@@ -117,9 +117,9 @@ describe('ScrapingFetcher', () => {
         <script>
         self.$R=self.$R||[];
         $R[28]($R[18],$R[32]={mine:!0,useBalance:!1,allowTraining:!1,region:$R[33]=["us","eu","sg","cn"],
-          rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:860207,limit:1200000000},
-          weeklyUsage:$R[35]={status:"ok",resetInSec:487487,usagePercent:0.2,usage:6416273,limit:3000000000},
-          monthlyUsage:$R[36]={status:"ok",resetInSec:703697,usagePercent:21,usage:1262472346,limit:6000000000}
+          rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:1234567,limit:1000000000},
+          weeklyUsage:$R[35]={status:"ok",resetInSec:487487,usagePercent:0.2,usage:7654321,limit:3000000000},
+          monthlyUsage:$R[36]={status:"ok",resetInSec:703697,usagePercent:21,usage:1260000000,limit:6000000000}
         });
         </script>
         </body></html>`;

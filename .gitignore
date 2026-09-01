@@ -33,3 +33,6 @@ temp/
 # Python caches
 __pycache__/
 .pytest_cache/
+
+# Engram persistent memory (contains session data)
+.engram/
