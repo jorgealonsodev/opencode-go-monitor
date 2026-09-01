@@ -93,15 +93,18 @@ export class ScrapingFetcher implements QuotaFetcher {
 
   private parseHtml(html: string): QuotaSnapshot {
     // SolidJS SSR hydration format. Each usage window has its own $R reference:
-    // rollingUsage:$R[30]={status:"ok",resetInSec:17562,usagePercent:1},weeklyUsage:$R[31]={status:"ok",resetInSec:533388,usagePercent:5},monthlyUsage:$R[32]={status:"ok",resetInSec:2485309,usagePercent:19}
+    // rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:860207,limit:1200000000}
+    // usagePercent may be fractional and may be followed by additional fields (usage, limit, ...),
+    // so the pattern must not anchor on the closing brace.
     const extractWindow = (name: string): { status: 'ok' | 'error' | 'unknown'; resetsInSeconds: number; usagePercent: number } => {
       // Primary pattern: name:$R[\d+]={status:"...",resetInSec:\d+,usagePercent:\d+}
-      let pattern = new RegExp(`${name}:\\$R\\[\\d+\\]=\\{status:"([^"]+)",resetInSec:(\\d+),usagePercent:(\\d+)\\}`);
+      const fields = `\\{status:"([^"]+)",resetInSec:(\\d+),usagePercent:(\\d+(?:\\.\\d+)?)[,}]`;
+      let pattern = new RegExp(`${name}:\\$R\\[\\d+\\]=${fields}`);
       let match = pattern.exec(html);
       
       // Fallback: handle case where data might be inline without $R ref
       if (!match) {
-        pattern = new RegExp(`${name}=\\{status:"([^"]+)",resetInSec:(\\d+),usagePercent:(\\d+)\\}`);
+        pattern = new RegExp(`${name}=${fields}`);
         match = pattern.exec(html);
       }
 
@@ -119,7 +122,7 @@ export class ScrapingFetcher implements QuotaFetcher {
       return {
         status: toStatus(match[1]),
         resetsInSeconds: parseInt(match[2], 10),
-        usagePercent: parseInt(match[3], 10),
+        usagePercent: parseFloat(match[3]),
       };
     };
 

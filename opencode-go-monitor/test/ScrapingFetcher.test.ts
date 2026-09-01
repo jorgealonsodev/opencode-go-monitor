@@ -110,6 +110,38 @@ describe('ScrapingFetcher', () => {
       expect(snapshot.timestamp).toBeGreaterThan(0);
     });
 
+    it('parses current HTML format with decimal usagePercent and extra usage/limit fields', async () => {
+      // Format observed 2026-09: usagePercent may be fractional and is followed by usage/limit
+      const currentFormatHtml = `
+        <html><body>
+        <script>
+        self.$R=self.$R||[];
+        $R[28]($R[18],$R[32]={mine:!0,useBalance:!1,allowTraining:!1,region:$R[33]=["us","eu","sg","cn"],
+          rollingUsage:$R[34]={status:"ok",resetInSec:7060,usagePercent:0.1,usage:860207,limit:1200000000},
+          weeklyUsage:$R[35]={status:"ok",resetInSec:487487,usagePercent:0.2,usage:6416273,limit:3000000000},
+          monthlyUsage:$R[36]={status:"ok",resetInSec:703697,usagePercent:21,usage:1262472346,limit:6000000000}
+        });
+        </script>
+        </body></html>`;
+      const fetchFn = vi.fn(async () =>
+        new Response(currentFormatHtml, { status: 200 }),
+      );
+      const creds = createMockCredentialsStorage(true);
+      const fetcher = new ScrapingFetcher(creds, fetchFn);
+
+      const snapshot = await fetcher.fetch();
+
+      expect(snapshot.rolling.status).toBe('ok');
+      expect(snapshot.rolling.usagePercent).toBeCloseTo(0.1);
+      expect(snapshot.rolling.resetsInSeconds).toBe(7060);
+      expect(snapshot.weekly.status).toBe('ok');
+      expect(snapshot.weekly.usagePercent).toBeCloseTo(0.2);
+      expect(snapshot.weekly.resetsInSeconds).toBe(487487);
+      expect(snapshot.monthly.status).toBe('ok');
+      expect(snapshot.monthly.usagePercent).toBe(21);
+      expect(snapshot.monthly.resetsInSeconds).toBe(703697);
+    });
+
     it('throws ParseError when HTML lacks quota data', async () => {
       const fetchFn = vi.fn(async () =>
         new Response('<html><body>no data here</body></html>', { status: 200 }),
