@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.4] - 2026-09-01
+
+### Fixed
+- Scraping parser failed with `ParseError` after opencode.ai changed the Go page payload: `usagePercent` can now be fractional and is followed by new `usage`/`limit` fields. The parser no longer requires an integer percent or a trailing closing brace.
+
 ## [0.1.3] - 2026-07-09
 
 ### Added
