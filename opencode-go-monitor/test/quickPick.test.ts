@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   showDetailQuickPick,
-  showHistoryQuickPick,
   type QuickPickItem,
   type QuickPick,
   type CreateQuickPick,
 } from '../src/ui/quickPick';
 import type { QuotaSnapshot } from '../src/domain/types';
+import { getTranslations } from '../src/i18n';
+
+const t = getTranslations('en');
 
 function createMockQuickPick<T extends QuickPickItem>(): QuickPick<T> & {
   _fireAccept: () => void;
@@ -62,120 +64,106 @@ function makeSnapshot(timestamp: number): QuotaSnapshot {
     rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
     weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
     monthly: { status: 'ok', usagePercent: 30, resetsInSeconds: 2592000 },
-    source: 'api',
+    profileId: 'default',
   };
 }
 
 describe('showDetailQuickPick', () => {
-  it('returns selected label when user accepts', async () => {
+  it('returns the action of the accepted item', async () => {
     const { factory, qp } = createMockFactory();
-    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 5, factory);
+    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 5, factory, t, 'Personal');
 
-    qp.selectedItems = [{ label: '$(refresh) Force refresh' }];
+    qp.selectedItems = [qp.items.find((i) => i.label === `$(refresh) ${t.detailsForceRefresh}`)!];
     qp._fireAccept();
 
-    const result = await promise;
-    expect(result).toBe('$(refresh) Force refresh');
+    expect(await promise).toBe('refresh');
   });
 
   it('returns undefined when user hides without selection', async () => {
     const { factory, qp } = createMockFactory();
-    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 5, factory);
+    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 5, factory, t, 'Personal');
 
     qp._fireHide();
 
-    const result = await promise;
-    expect(result).toBeUndefined();
+    expect(await promise).toBeUndefined();
   });
 
-  it('generates correct items with all data', async () => {
+  it('returns undefined for informational items', async () => {
+    const { factory, qp } = createMockFactory();
+    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 5, factory, t, 'Personal');
+
+    qp.selectedItems = [qp.items[0]];
+    qp._fireAccept();
+
+    expect(await promise).toBeUndefined();
+  });
+
+  it('lists windows, prediction, history and key-management actions', async () => {
     const { factory, qp } = createMockFactory();
     const snapshot = makeSnapshot(Date.now());
     const prediction = new Date('2025-12-25');
 
-    const promise = showDetailQuickPick(snapshot, prediction, 42, factory);
+    const promise = showDetailQuickPick(snapshot, prediction, 42, factory, t, 'Team 1');
 
-    expect(qp.items).toHaveLength(9);
-    expect(qp.items[0].label).toBe('$(clock) Rolling: 10% · resets in 1h 0m');
-    expect(qp.items[1].label).toBe('$(calendar) Weekly: 50% · resets in 1d 0h');
-    expect(qp.items[2].label).toBe('$(calendar) Monthly: 30% · resets in 30d 0h');
-    expect(qp.items[3].label).toContain('Predicted exhaustion');
-    expect(qp.items[3].label).toContain('2025');
-    expect(qp.items[4].label).toBe('$(list-unordered) View history (42 entries)');
-    expect(qp.items[5].label).toBe('$(link-external) Open OpenCode dashboard');
-    expect(qp.items[6].label).toBe('$(refresh) Force refresh');
-    expect(qp.items[7].label).toBe('$(gear) Reconfigure credentials');
-    expect(qp.items[8].label).toBe('$(sign-out) Logout (Clear credentials)');
+    expect(qp.items.map((i) => i.label)).toEqual([
+      '$(clock) Rolling: 10% · resets in 1h 0m',
+      '$(calendar) Weekly: 50% · resets in 1d 0h',
+      '$(calendar) Monthly: 30% · resets in 30d 0h',
+      `$(trend-up) ${t.detailsPrediction(prediction.toLocaleDateString())}`,
+      '$(list-unordered) 42 snapshots in history',
+      '$(link-external) Open OpenCode dashboard',
+      '$(refresh) Force refresh',
+      '$(key) Switch API key (Team 1)',
+      '$(add) Add API Key',
+      '$(trash) Remove All API Keys',
+    ]);
+    expect(qp.items.map((i) => (i as { action?: string }).action)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'openDashboard',
+      'refresh',
+      'switchApiKey',
+      'addApiKey',
+      'removeAllApiKeys',
+    ]);
+    expect(qp.items.some((i) => /Reconfigure|Logout/.test(i.label))).toBe(false);
 
     qp._fireHide();
     await promise;
   });
 
-  it('shows insufficient data when prediction is null', async () => {
+  it('omits Switch API key without an active profile', async () => {
+    const { factory, qp } = createMockFactory();
+    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 0, factory, t, undefined);
+
+    expect(qp.items.some((i) => i.label.includes('Switch API key'))).toBe(false);
+
+    qp._fireHide();
+    await promise;
+  });
+
+  it('shows the no-prediction label when prediction is null', async () => {
+    const { factory, qp } = createMockFactory();
+    const promise = showDetailQuickPick(makeSnapshot(Date.now()), null, 0, factory, t, 'Personal');
+
+    expect(qp.items[3].label).toBe(`$(trend-up) ${t.detailsNoPrediction}`);
+
+    qp._fireHide();
+    await promise;
+  });
+
+  it('renders limit-reached and unknown windows', async () => {
     const { factory, qp } = createMockFactory();
     const snapshot = makeSnapshot(Date.now());
+    snapshot.rolling = { status: 'limit-reached', usagePercent: 100, resetsInSeconds: 3600 };
+    snapshot.weekly = { status: 'unknown', usagePercent: 0, resetsInSeconds: 0 };
+    const promise = showDetailQuickPick(snapshot, null, 0, factory, t, 'Personal');
 
-    const promise = showDetailQuickPick(snapshot, null, 0, factory);
-
-    expect(qp.items[3].label).toBe('$(trend-up) Predicted exhaustion: Insufficient data');
-
-    qp._fireHide();
-    await promise;
-  });
-});
-
-describe('showHistoryQuickPick', () => {
-  it('returns selected label when user accepts', async () => {
-    const { factory, qp } = createMockFactory();
-    const history = [makeSnapshot(Date.now())];
-    const promise = showHistoryQuickPick(history, factory);
-
-    qp.selectedItems = [{ label: qp.items[0].label }];
-    qp._fireAccept();
-
-    const result = await promise;
-    expect(result).toContain('Rolling: 10%');
-  });
-
-  it('returns undefined when user hides without selection', async () => {
-    const { factory, qp } = createMockFactory();
-    const history = [makeSnapshot(Date.now())];
-    const promise = showHistoryQuickPick(history, factory);
-
-    qp._fireHide();
-
-    const result = await promise;
-    expect(result).toBeUndefined();
-  });
-
-  it('generates correct labels for history entries', async () => {
-    const { factory, qp } = createMockFactory();
-    const history: QuotaSnapshot[] = [
-      {
-        timestamp: new Date('2025-06-15T10:00:00Z').getTime(),
-        rolling: { status: 'ok', usagePercent: 15, resetsInSeconds: 3600 },
-        weekly: { status: 'ok', usagePercent: 55, resetsInSeconds: 86400 },
-        monthly: { status: 'ok', usagePercent: 35, resetsInSeconds: 2592000 },
-        source: 'api',
-      },
-    ];
-
-    const promise = showHistoryQuickPick(history, factory);
-
-    expect(qp.items).toHaveLength(1);
-    expect(qp.items[0].label).toContain('Rolling: 15%');
-    expect(qp.items[0].label).toContain('Weekly: 55%');
-    expect(qp.items[0].label).toContain('Monthly: 35%');
-
-    qp._fireHide();
-    await promise;
-  });
-
-  it('handles empty history', async () => {
-    const { factory, qp } = createMockFactory();
-    const promise = showHistoryQuickPick([], factory);
-
-    expect(qp.items).toHaveLength(0);
+    expect(qp.items[0].label).toBe('$(clock) Rolling: Limit reached — resets in 1h 0m');
+    expect(qp.items[1].label).toBe('$(calendar) Weekly: ?%');
 
     qp._fireHide();
     await promise;

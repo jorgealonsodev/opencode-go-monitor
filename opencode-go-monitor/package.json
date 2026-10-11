@@ -2,7 +2,7 @@
   "name": "opencode-go-monitor",
   "displayName": "OpenCode Go Monitor",
   "description": "Real-time OpenCode Go monitoring in your VS Code: status bar",
-  "version": "0.1.4",
+  "version": "1.0.0",
   "publisher": "jorgealonsodev",
   "icon": "icon.png",
   "engines": {
@@ -20,6 +20,26 @@
       {
         "command": "opencodeGoQuota.configure",
         "title": "%command.configure.title%",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.selectApiKey",
+        "title": "%command.selectApiKey.title%",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.renameApiKey",
+        "title": "%command.renameApiKey.title%",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.replaceApiKey",
+        "title": "%command.replaceApiKey.title%",
+        "category": "OpenCode Go"
+      },
+      {
+        "command": "opencodeGoQuota.removeApiKey",
+        "title": "%command.removeApiKey.title%",
         "category": "OpenCode Go"
       },
       {

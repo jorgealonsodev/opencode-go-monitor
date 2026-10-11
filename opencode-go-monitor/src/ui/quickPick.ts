@@ -1,4 +1,4 @@
-import type { QuotaSnapshot } from '../domain/types';
+import type { QuotaSnapshot, QuotaWindow } from '../domain/types';
 import { formatTime, formatPercent } from '../domain/format';
 import type { Translations } from '../i18n';
 
@@ -20,53 +20,59 @@ export interface QuickPick<T extends QuickPickItem> {
 
 export type CreateQuickPick = <T extends QuickPickItem>() => QuickPick<T>;
 
+/** Action behind a details item; informational items have none. */
+export type DetailsAction = 'openDashboard' | 'refresh' | 'switchApiKey' | 'addApiKey' | 'removeAllApiKeys';
+
+export interface DetailsItem extends QuickPickItem {
+  action?: DetailsAction;
+}
+
+/** `42% · resets in 2h 13m`, `Limit reached — resets in 2h 13m` or `?%`. */
+function windowSummary(window: QuotaWindow, t: Translations): string {
+  const reset = formatTime(window.resetsInSeconds);
+  switch (window.status) {
+    case 'ok':
+      return `${formatPercent(window.usagePercent)} · ${t.statusBarReset(reset)}`;
+    case 'limit-reached':
+      return t.statusBarLimitReached(reset);
+    default:
+      return '?%';
+  }
+}
+
+/**
+ * Details of the latest snapshot plus key-management actions. Resolves with the
+ * accepted item's action, or undefined when hidden or an informational item is chosen.
+ */
 export async function showDetailQuickPick(
   snapshot: QuotaSnapshot,
   prediction: Date | null,
   historyCount: number,
   createQuickPick: CreateQuickPick,
-  t?: Translations,
-): Promise<string | undefined> {
-  const qp = createQuickPick<QuickPickItem>();
+  t: Translations,
+  profileName: string | undefined,
+): Promise<DetailsAction | undefined> {
+  const qp = createQuickPick<DetailsItem>();
 
-  const rollingLabel = t?.detailsRolling ?? 'Rolling';
-  const weeklyLabel = t?.detailsWeekly ?? 'Weekly';
-  const monthlyLabel = t?.detailsMonthly ?? 'Monthly';
-  const predictionLabel = t?.detailsPrediction ?? ((time: string) => `Predicted exhaustion: ${time}`);
-  const noPredictionLabel = t?.detailsNoPrediction ?? 'Predicted exhaustion: Insufficient data';
-  const historyLabel = t?.detailsHistoryCount ?? ((count: number) => `View history (${count} entries)`);
-
-  qp.items = [
+  const items: DetailsItem[] = [
+    { label: `$(clock) ${t.detailsRolling}: ${windowSummary(snapshot.rolling, t)}` },
+    { label: `$(calendar) ${t.detailsWeekly}: ${windowSummary(snapshot.weekly, t)}` },
+    { label: `$(calendar) ${t.detailsMonthly}: ${windowSummary(snapshot.monthly, t)}` },
     {
-      label: `$(clock) ${rollingLabel}: ${formatPercent(snapshot.rolling.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.rolling.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.rolling.resetsInSeconds)}`}`,
+      label: `$(trend-up) ${prediction ? t.detailsPrediction(prediction.toLocaleDateString()) : t.detailsNoPrediction}`,
     },
-    {
-      label: `$(calendar) ${weeklyLabel}: ${formatPercent(snapshot.weekly.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.weekly.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.weekly.resetsInSeconds)}`}`,
-    },
-    {
-      label: `$(calendar) ${monthlyLabel}: ${formatPercent(snapshot.monthly.usagePercent)} · ${t?.statusBarReset(formatTime(snapshot.monthly.resetsInSeconds)) ?? `resets in ${formatTime(snapshot.monthly.resetsInSeconds)}`}`,
-    },
-    {
-      label: prediction
-        ? `$(trend-up) ${typeof predictionLabel === 'function' ? predictionLabel(prediction.toLocaleDateString()) : predictionLabel}`
-        : `$(trend-up) ${noPredictionLabel}`,
-    },
-    {
-      label: `$(list-unordered) ${typeof historyLabel === 'function' ? historyLabel(historyCount) : historyLabel}`,
-    },
-    {
-      label: '$(link-external) Open OpenCode dashboard',
-    },
-    {
-      label: '$(refresh) Force refresh',
-    },
-    {
-      label: `$(gear) ${t?.detailsReconfigure ?? 'Reconfigure credentials'}`,
-    },
-    {
-      label: `$(sign-out) ${t?.detailsLogout ?? 'Logout (Clear credentials)'}`,
-    },
+    { label: `$(list-unordered) ${t.detailsHistoryCount(historyCount)}` },
+    { label: `$(link-external) ${t.detailsOpenDashboard}`, action: 'openDashboard' },
+    { label: `$(refresh) ${t.detailsForceRefresh}`, action: 'refresh' },
   ];
+  if (profileName !== undefined) {
+    items.push({ label: `$(key) ${t.detailsSwitchApiKey(profileName)}`, action: 'switchApiKey' });
+  }
+  items.push(
+    { label: `$(add) ${t.actionAddApiKey}`, action: 'addApiKey' },
+    { label: `$(trash) ${t.detailsRemoveAllApiKeys}`, action: 'removeAllApiKeys' },
+  );
+  qp.items = items;
 
   return new Promise((resolve) => {
     let resolved = false;
@@ -74,47 +80,7 @@ export async function showDetailQuickPick(
     const acceptDisposable = qp.onDidAccept(() => {
       if (!resolved) {
         resolved = true;
-        resolve(qp.selectedItems[0]?.label);
-        acceptDisposable.dispose();
-        hideDisposable.dispose();
-        qp.dispose();
-      }
-    });
-
-    const hideDisposable = qp.onDidHide(() => {
-      if (!resolved) {
-        resolved = true;
-        resolve(undefined);
-        acceptDisposable.dispose();
-        hideDisposable.dispose();
-        qp.dispose();
-      }
-    });
-
-    qp.show();
-  });
-}
-
-export async function showHistoryQuickPick(
-  history: QuotaSnapshot[],
-  createQuickPick: CreateQuickPick,
-): Promise<string | undefined> {
-  const qp = createQuickPick<QuickPickItem>();
-
-  qp.items = history.map((entry) => {
-    const date = new Date(entry.timestamp).toLocaleDateString();
-    return {
-      label: `${date} — Rolling: ${formatPercent(entry.rolling.usagePercent)} | Weekly: ${formatPercent(entry.weekly.usagePercent)} | Monthly: ${formatPercent(entry.monthly.usagePercent)}`,
-    };
-  });
-
-  return new Promise((resolve) => {
-    let resolved = false;
-
-    const acceptDisposable = qp.onDidAccept(() => {
-      if (!resolved) {
-        resolved = true;
-        resolve(qp.selectedItems[0]?.label);
+        resolve(qp.selectedItems[0]?.action);
         acceptDisposable.dispose();
         hideDisposable.dispose();
         qp.dispose();

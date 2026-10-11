@@ -8,7 +8,7 @@ function makeSnapshot(timestamp: number, monthlyUsage: number): QuotaSnapshot {
     rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
     weekly: { status: 'ok', usagePercent: 30, resetsInSeconds: 86400 },
     monthly: { status: 'ok', usagePercent: monthlyUsage, resetsInSeconds: 2592000 },
-    source: 'api',
+    profileId: 'default',
   };
 }
 

@@ -1,5 +1,3 @@
-import type { QuotaSnapshot, QuotaWindow } from './types';
-
 export function formatTime(seconds: number): string {
   if (seconds < 0) {
     seconds = 0;
@@ -23,11 +21,4 @@ export function formatTime(seconds: number): string {
 export function formatPercent(value: number): string {
   const clamped = Math.max(0, Math.min(100, value));
   return `${Math.round(clamped)}%`;
-}
-
-export function getWorstWindow(snapshot: QuotaSnapshot): QuotaWindow {
-  const windows: QuotaWindow[] = [snapshot.rolling, snapshot.weekly, snapshot.monthly];
-  return windows.reduce((worst, current) =>
-    current.usagePercent > worst.usagePercent ? current : worst
-  );
 }
