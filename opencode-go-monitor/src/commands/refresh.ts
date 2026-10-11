@@ -1,4 +1,5 @@
-import { AuthError, CredentialsError } from '../domain/errors';
+import { AuthError, CredentialsError, NetworkError, ParseError } from '../domain/errors';
+import { REQUEST_TIMED_OUT_MESSAGE } from '../fetchers/UsageFetcher';
 import type { CommandsLike, WindowLike, DisposableLike } from './types';
 import type { Translations } from '../i18n';
 import { ADD_API_KEY_COMMAND, REPLACE_API_KEY_COMMAND, SELECT_API_KEY_COMMAND } from './apiKeys';
@@ -38,5 +39,16 @@ export function notifyRefreshFailed(err: unknown, window: WindowLike, commands: 
     });
     return;
   }
-  void window.showErrorMessage(t.msgFailedToRefresh(err instanceof Error ? err.message : String(err)));
+  void window.showErrorMessage(t.msgFailedToRefresh(describeError(err, t)));
+}
+
+/** Translated, key-free reason for a failed fetch (notifications and the error tooltip). */
+export function describeError(err: unknown, t: Translations): string {
+  if (err instanceof ParseError) {
+    return t.errUnexpectedResponse;
+  }
+  if (err instanceof NetworkError && err.message === REQUEST_TIMED_OUT_MESSAGE) {
+    return t.errRequestTimedOut;
+  }
+  return err instanceof Error ? err.message : String(err);
 }

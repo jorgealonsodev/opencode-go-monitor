@@ -6,6 +6,7 @@ import { version } from '../../package.json';
 export const USAGE_URL = 'https://opencode.ai/zen/go/v1/usage';
 export const USER_AGENT = `opencode-go-monitor/${version}`;
 export const DEFAULT_TIMEOUT_MS = 15_000;
+export const REQUEST_TIMED_OUT_MESSAGE = 'Request timed out';
 export const UNEXPECTED_RESPONSE_MESSAGE =
   'Unexpected response from OpenCode — the extension may need an update.';
 
@@ -97,17 +98,13 @@ export class UsageFetcher implements QuotaFetcher {
 
     return toSnapshot(data, active.id, Date.now());
   }
-
-  async isAvailable(): Promise<boolean> {
-    return (await this.keys.getActive()) !== null;
-  }
 }
 
 function toRequestError(err: unknown): Error {
   const name = err instanceof Error ? err.name : '';
   if (name === 'TimeoutError' || name === 'AbortError') {
     debug('[UsageFetcher] request timed out');
-    return new NetworkError('Request timed out');
+    return new NetworkError(REQUEST_TIMED_OUT_MESSAGE);
   }
   const cause = err instanceof Error ? (err as Error & { cause?: unknown }).cause : undefined;
   if (cause instanceof Error && /redirect/i.test(cause.message)) {

@@ -14,7 +14,6 @@ export interface QuotaSnapshot {
 
 export interface QuotaFetcher {
   fetch(): Promise<QuotaSnapshot>;
-  isAvailable(): Promise<boolean>;
 }
 
 /** The API key currently selected for monitoring. */

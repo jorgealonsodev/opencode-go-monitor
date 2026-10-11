@@ -25,7 +25,8 @@ export interface QuotaPollerDeps {
   activeProfileId(): string | undefined;
   /** Stores and renders a snapshot for the active profile. */
   onSnapshot(snapshot: QuotaSnapshot): void | Promise<void>;
-  setState(state: PollerState): void;
+  /** `error` carries the failure that caused the `error` state. */
+  setState(state: PollerState, error?: unknown): void;
   /** Called once per auth failure episode. */
   onAuthError(err: AuthError): void;
   /** Called for failures of a manual Refresh (AuthError is reported via onAuthError). */
@@ -231,7 +232,7 @@ export class QuotaPoller {
     const delay = Math.max(this.intervalMs(), stage, retryAfterMs);
     this.backoffUntil = this.clock.now() + delay;
     this.log(`[poll] next attempt in ${delay}ms`);
-    this.deps.setState('error');
+    this.deps.setState('error', err);
     this.schedule(delay);
     if (manual) {
       this.deps.onManualRefreshError?.(err);

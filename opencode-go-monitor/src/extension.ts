@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProfileStore, HistoryStorage, removeLegacyData, migrateLegacyHistory } from './storage';
 import { UsageFetcher } from './fetchers';
-import { StatusBarManager, singleClickCommand } from './ui/statusBar';
+import { StatusBarManager, singleClickCommand, type MarkdownTooltip } from './ui/statusBar';
 import {
   ADD_API_KEY_COMMAND,
   registerApiKeyCommands,
@@ -12,6 +12,7 @@ import {
   registerSelectDisplayWindowCommand,
   notifyAuthRejected,
   notifyRefreshFailed,
+  describeError,
 } from './commands';
 import { QuotaPoller } from './polling/QuotaPoller';
 import type { QuickPick, QuickPickItem } from './ui/quickPick';
@@ -66,22 +67,14 @@ function createStatusBarItemAdapter(alignment: number, priority: number): import
     get tooltip() {
       return item.tooltip as string;
     },
-    set tooltip(value: string | { value: string; isTrusted?: boolean } | undefined) {
-      if (typeof value === 'string') {
-        // Check if it contains markdown syntax
-        if (value.includes('**') || value.includes('\n')) {
-          const md = new vscode.MarkdownString(value);
-          md.isTrusted = true;
-          item.tooltip = md;
-        } else {
-          item.tooltip = value;
-        }
-      } else if (value && typeof value === 'object' && 'value' in value) {
-        const md = new vscode.MarkdownString(value.value);
-        md.isTrusted = value.isTrusted ?? true;
-        item.tooltip = md;
+    set tooltip(value: string | MarkdownTooltip | undefined) {
+      if (value === undefined || typeof value === 'string') {
+        // Plain text: user-supplied names and error reasons never render as markdown.
+        item.tooltip = value;
       } else {
-        item.tooltip = undefined;
+        const md = new vscode.MarkdownString(value.value);
+        md.isTrusted = value.isTrusted ?? false;
+        item.tooltip = md;
       }
     },
     get command() {
@@ -172,15 +165,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   let displayWindow: DisplayWindow = config.get<DisplayWindow>('displayWindow', 'rolling');
   outputChannel.appendLine(`[init] displayWindow: ${displayWindow}`);
 
+  // The status bar names the active profile (prefix only with two or more profiles).
+  const syncProfileName = () =>
+    statusBarManager.setProfileName(profileStore.getActiveProfile()?.name, profileStore.list().length);
+
   // 6. Polling (single owner of backoff, Retry-After, debounce and profile binding)
   const poller = new QuotaPoller({
     fetcher,
     activeProfileId: () => profileStore.getActiveProfile()?.id,
     onSnapshot: async (snapshot) => {
       await historyStorage.append(snapshot);
+      syncProfileName();
       statusBarManager.update(snapshot, thresholds, displayWindow);
     },
-    setState: (state) => statusBarManager.setState(state),
+    setState: (state, err) => {
+      syncProfileName();
+      statusBarManager.setState(state, err === undefined ? undefined : describeError(err, t));
+    },
     onAuthError: (err) => notifyAuthRejected(err, vscode.window, vscode.commands, t),
     onManualRefreshError: (err) => notifyRefreshFailed(err, vscode.window, vscode.commands, t),
     pollIntervalMs: () => readPollInterval() * 1000,
@@ -205,16 +206,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   registered.push(registerRefreshCommand(poller, vscode.commands));
 
   registered.push(
-    registerShowDetailsCommand(
-      historyStorage,
-      statusBarManager,
-      createQuickPickAdapter,
-      vscode.window,
-      vscode.commands,
-      fetcher,
-      displayWindow,
-      t
-    )
+    registerShowDetailsCommand({
+      history: historyStorage,
+      createQuickPick: createQuickPickAdapter,
+      window: vscode.window,
+      commands: vscode.commands,
+      t,
+      refresher: poller,
+      activeProfileName: () => profileStore.getActiveProfile()?.name,
+    })
   );
 
   registered.push(
@@ -281,6 +281,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       // Re-render the latest snapshot with the new window
       const history = historyStorage.getAll();
       if (history.length > 0 && statusBarManager.state === 'active') {
+        syncProfileName();
         statusBarManager.update(history[history.length - 1], thresholds, displayWindow);
       }
     }

@@ -1,13 +1,34 @@
 # Changelog
 
-## [0.1.5] - 2026-10-11
+## [1.0.0] - 2026-10-11
 
-### Fixed
-- Quota data could no longer be read after OpenCode moved the Go usage page to a client-rendered console (`https://opencode.ai/console/<workspace-id>/go`). Usage is now fetched from the console status API (`GET https://opencode.ai/console/api/go/status`) using the `auth` cookie and the workspace ID as `x-org-id`; the 5-hour, weekly and monthly meters map to the rolling, weekly and monthly windows.
+### Breaking
+- Authentication now uses OpenCode Go API keys. Cookie and workspace ID setups are no longer supported and cannot be converted. After upgrading, run **Add API Key** once (a one-time notice offers it); old cookie-era credentials and the cached fetch strategy are deleted on first start.
+
+### Added
+- Named API keys: store several keys (for example one per team or subscription) and choose which one is monitored. Commands: *Add API Key* (same command id as the former *Configure*), *Select API Key*, *Rename API Key*, *Replace API Key*, *Remove API Key* and *Remove All API Keys* (same command id as the former *Clear Credentials*, now with confirmation).
+- New keys are validated with one usage request; a successful response becomes the first snapshot.
+- Quota history per key; the pre-1.0 history is moved to the first key you add, and *Export History* exports the monitored key as `{ profile, entries }`.
+- Limit-reached state: an exhausted window shows `OC Go Rolling: limit · 2h 13m` and `Limit reached — resets in …` in the tooltip instead of an error.
+- Status bar states for a missing key (`OC Go: add API key`) and a rejected key (`OC Go: invalid key`); single click adds or selects a key in those states.
+- With two or more keys the status bar shows the key name, and the tooltip shows `Key: <name>` plus a *Switch API key* link. The details QuickPick adds *Switch API key*, *Add API Key* and *Remove All API Keys*.
 
 ### Changed
-- "Open Dashboard" now opens `https://opencode.ai/console/<workspace-id>/go`.
-- Credential prompts now point to the console URL (`/console/wrk_...`) for the workspace ID and to the `opencode.ai` cookies for the auth cookie.
+- Quota is read from `GET https://opencode.ai/zen/go/v1/usage` with `Authorization: Bearer <key>` and an `opencode-go-monitor/<version>` user agent.
+- *Open Dashboard* opens `https://opencode.ai/console`.
+- The error tooltip shows the failure reason; unexpected responses show "Unexpected response from OpenCode — the extension may need an update."
+- Windows that cannot be read show `?%` instead of failing the whole refresh.
+
+### Fixed
+- Quota could not be read after OpenCode moved the Go usage page to a client-rendered console, and console session cookies expired or were revoked on logout (HTTP 401).
+- Requests time out after 15 s, honor `Retry-After` on 429/503 (never less than 60 s), and refuse redirects so the key is never forwarded.
+- A rejected key stops automatic polling until another key is selected, the key is replaced, or *Refresh* runs; one notification per failure episode.
+- Manual *Refresh*, *Select API Key* and window-focus refetches share a 10 s debounce; results for a key that is no longer active are discarded.
+- Re-running an interrupted history migration no longer duplicates entries.
+
+### Removed
+- Cookie and workspace ID authentication, the HTML scraping fetcher, the console status API client and the fetch strategy selector, with their prompts, strings, settings documentation and tests.
+- Workspace and data source lines from the status bar tooltip; *Reconfigure credentials* and *Logout* from the details QuickPick.
 
 ## [0.1.4] - 2026-09-01
 

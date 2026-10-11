@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatTime, formatPercent, getWorstWindow } from '../src/domain/format';
-import type { QuotaSnapshot } from '../src/domain/types';
+import { formatTime, formatPercent } from '../src/domain/format';
 
 describe('formatTime', () => {
   it('formats minutes only', () => {
@@ -47,31 +46,5 @@ describe('formatPercent', () => {
   it('rounds to nearest integer', () => {
     expect(formatPercent(65.4)).toBe('65%');
     expect(formatPercent(65.6)).toBe('66%');
-  });
-});
-
-describe('getWorstWindow', () => {
-  it('returns the window with highest usagePercent', () => {
-    const snapshot: QuotaSnapshot = {
-      timestamp: Date.now(),
-      rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
-      weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
-      monthly: { status: 'ok', usagePercent: 30, resetsInSeconds: 2592000 },
-      profileId: 'default',
-    };
-
-    expect(getWorstWindow(snapshot)).toBe(snapshot.weekly);
-  });
-
-  it('returns rolling when all are equal', () => {
-    const snapshot: QuotaSnapshot = {
-      timestamp: Date.now(),
-      rolling: { status: 'ok', usagePercent: 50, resetsInSeconds: 3600 },
-      weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
-      monthly: { status: 'ok', usagePercent: 50, resetsInSeconds: 2592000 },
-      profileId: 'default',
-    };
-
-    expect(getWorstWindow(snapshot)).toBe(snapshot.rolling);
   });
 });

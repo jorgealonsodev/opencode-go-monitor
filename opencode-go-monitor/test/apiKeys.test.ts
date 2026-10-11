@@ -91,7 +91,6 @@ describe('API key commands', () => {
           seenKeys.push(active);
           return fetchResult(active);
         },
-        isAvailable: async () => true,
       }),
       onActiveProfileChanged,
     };

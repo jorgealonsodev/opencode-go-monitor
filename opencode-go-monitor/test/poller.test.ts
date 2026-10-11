@@ -52,7 +52,6 @@ describe('QuotaPoller', () => {
     fetchImpl = async () => snapshot(active!);
     fetcher = {
       fetch: vi.fn(() => fetchImpl()),
-      isAvailable: vi.fn(async () => true),
     };
     deps = {
       fetcher,
@@ -158,7 +157,7 @@ describe('QuotaPoller', () => {
       };
       poller.start();
       await flush();
-      expect(deps.setState).toHaveBeenLastCalledWith('error');
+      expect(deps.setState).toHaveBeenLastCalledWith('error', expect.objectContaining({ status: 429 }));
 
       await vi.advanceTimersByTimeAsync(119_000);
       expect(fetcher.fetch).toHaveBeenCalledTimes(1);
@@ -220,7 +219,7 @@ describe('QuotaPoller', () => {
         new Promise((_, reject) => setTimeout(() => reject(new NetworkError('Request timed out')), 15_000));
       poller.start();
       await vi.advanceTimersByTimeAsync(15_000);
-      expect(deps.setState).toHaveBeenLastCalledWith('error');
+      expect(deps.setState).toHaveBeenLastCalledWith('error', expect.objectContaining({ message: 'Request timed out' }));
 
       fetchImpl = async () => snapshot('p1');
       await vi.advanceTimersByTimeAsync(INTERVAL_MS);

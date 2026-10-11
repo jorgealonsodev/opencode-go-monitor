@@ -1,6 +1,6 @@
 # OpenCode Go Monitor
 
-[![Version](https://img.shields.io/badge/version-0.1.5-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/jorgealonsodev/opencode-go-monitor)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **English** and **Spanish**.
@@ -12,7 +12,8 @@ Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **Eng
 - **Progress bars on hover** — Hover over the status bar item to see detailed progress bars for rolling, weekly, and monthly usage
 - **Selectable display window** — Choose which quota window to display: Rolling, Weekly, or Monthly
 - **Historical tracking and exhaustion prediction** — Tracks usage over time and predicts when you might exhaust your quota using linear regression
-- **HTML scraping backend** — Fetches quota data directly from the OpenCode web console using your session cookie (API mode is reserved for a future release)
+- **API key authentication** — Reads your quota with an OpenCode Go API key; no browser session or DevTools needed
+- **Several named API keys** — Store one key per team or subscription and switch the monitored key in two clicks
 - **Bilingual (EN/ES)** — Automatically detects your VSCode language and displays all messages in English or Spanish
 
 ## Screenshots
@@ -23,7 +24,7 @@ Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **Eng
 
 ### What you'll see:
 
-- **Status bar**: Real-time usage percentage with reset countdown
+- **Status bar**: Real-time usage percentage with reset countdown, prefixed with the key name when you have several keys
 - **Hover tooltip**: Visual progress bars for all quota windows
 - **Color coding**: Green (normal), Yellow (≥80%), Red (≥95%)
 - **QuickPick details**: Full breakdown with exhaustion prediction
@@ -40,33 +41,23 @@ Real-time OpenCode Go monitoring in your VS Code: status bar. Available in **Eng
 5. Select the downloaded `.vsix` file
 6. **Reload VSCode** (`Ctrl+Shift+P` → `Developer: Reload Window`)
 
-### Obtaining Credentials
+### Getting an API key
 
-You need two pieces of information from your OpenCode account: `workspaceId` and `authCookie`.
+1. Sign in to the [OpenCode console](https://opencode.ai/console) in your browser
+2. Open the API keys section of the workspace that holds your Go subscription
+3. Create a new key (or copy an existing one)
 
-#### Getting your `authCookie`:
+### Adding the key to the extension
 
-1. Log in to [opencode.ai](https://opencode.ai) in your browser
-2. Open DevTools (`F12` or `Ctrl+Shift+I` / `Cmd+Option+I`)
-3. Go to the **Application** tab (Chrome/Edge) or **Storage** tab (Firefox)
-4. In the left sidebar, expand **Cookies** and select `https://opencode.ai`
-5. Find the cookie named **`auth`**
-6. Copy the **Value** field — this is your `authCookie` (starts with `Fe26.2**...`)
+1. Open the VSCode Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+2. Type and select: **OpenCode Go: Add API Key** (or click `OC Go: add API key` in the status bar)
+3. Enter a name for the key (for example `Personal` or `Team 1`)
+4. Paste the API key (input is masked for security)
+5. The key is checked with OpenCode and the quota appears immediately
 
-#### Getting your `workspaceId`:
+The first key you add becomes the monitored key. Later keys are saved and offered with a **Monitor** action.
 
-1. While logged in to [opencode.ai](https://opencode.ai), navigate to the Go section
-2. Look at the URL in your browser's address bar
-3. The URL path will be: `/workspace/{workspaceId}/go`
-4. Copy the `{workspaceId}` part — this is your `workspaceId` (e.g., `wrk_01EXAMPLE00000000000000000`)
-
-#### Configuring the Extension:
-
-1. Open VSCode Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-2. Type and select: **OpenCode Go: Configure Credentials**
-3. Enter your `workspaceId`
-4. Enter your `authCookie` (input is masked for security)
-5. The extension will immediately start monitoring your quota
+> **Upgrading from 0.1.x**: browser-session setups (DevTools values and workspace ID) are no longer supported. Old credentials are removed on first start and you are asked to add an API key once. Your quota history is kept and attached to the first key you add.
 
 ## Configuration
 
@@ -80,7 +71,7 @@ All settings are available under `OpenCode Go Monitor` in VS Code: settings:
 | `opencodeGoQuota.displayWindow` | `string` | `"rolling"` | Which quota window to display: `rolling`, `weekly`, or `monthly` |
 | `opencodeGoQuota.debug` | `boolean` | `false` | Enable debug logging to the Output panel |
 
-> **Note**: Credentials (`workspaceId` and `authCookie`) are stored securely in VSCode's SecretStorage (OS keychain) and persist across all projects until you explicitly logout.
+> **Note**: API keys are stored only in VSCode's SecretStorage (OS keychain) and persist across all projects until you remove them. Key names and the selected key are shared by all VSCode windows; keys are never synced across machines.
 
 ## Commands
 
@@ -88,22 +79,34 @@ All commands are available from the VSCode Command Palette (`Ctrl+Shift+P` / `Cm
 
 | Command | Description |
 |---------|-------------|
-| **OpenCode Go: Configure Credentials** | Set or update your workspace ID and auth cookie |
+| **OpenCode Go: Add API Key** | Name and store a new API key (validated with OpenCode) |
+| **OpenCode Go: Select API Key** | Choose which stored key is monitored |
+| **OpenCode Go: Rename API Key** | Rename a stored key (its history is kept) |
+| **OpenCode Go: Replace API Key** | Paste a new value for a stored key, keeping its name and history |
+| **OpenCode Go: Remove API Key** | Delete a stored key and its history |
+| **OpenCode Go: Remove All API Keys** | Delete every stored key and all history |
 | **OpenCode Go: Refresh Quota** | Force an immediate quota fetch and status bar update |
 | **OpenCode Go: Show Details** | Open QuickPick with detailed quota breakdown and prediction |
-| **OpenCode Go: Export History** | Export all historical quota data to a JSON file |
+| **OpenCode Go: Export History** | Export the monitored key's quota history to a JSON file |
 | **OpenCode Go: Open Dashboard** | Open the OpenCode console dashboard in your browser |
-| **OpenCode Go: Clear Credentials** | Remove all stored credentials and reset to initial state |
 | **OpenCode Go: Select Display Window** | Choose which quota window to display in the status bar |
 
 ## Status Bar
 
-The status bar item shows:
-- **Text**: `OC Go Rolling: 13% · 3h 23m` (or Weekly/Monthly depending on your selection)
-- **Hover tooltip**: Detailed view with progress bars for all three windows, active workspace, data source, and last update time
-- **Colors**: Green (normal), Yellow (≥80%), Red (≥95%)
+| State | Text | Single click |
+|-------|------|--------------|
+| No API key | `OC Go: add API key` | Add API Key |
+| Active, one key | `OC Go Rolling: 42% · 2h 13m` | Refresh |
+| Active, several keys | `OC Go · Team 1 · Rolling: 42% · 2h 13m` (names longer than 12 characters are shortened) | Refresh |
+| Limit reached | `OC Go Rolling: limit · 2h 13m` | Refresh |
+| Key rejected | `OC Go: invalid key` | Select API Key |
+| Error | `OC Go: error` (hover for the reason) | Refresh |
 
-Click the status bar item to open the details QuickPick.
+- **Hover tooltip**: progress bars for all three windows (`Limit reached — resets in …` for an exhausted window, `?%` when a window could not be read), the monitored key name and last update time, and a **Switch API key** link when you have several keys
+- **Colors**: Green (normal), Yellow (≥80%), Red (≥95%), based on the highest window
+- **Double click**: opens the details QuickPick (breakdown, prediction, switch/add/remove keys)
+
+When a key is rejected, automatic polling for it stops until you select another key, replace it, or run **Refresh Quota**.
 
 ## Development
 
@@ -129,30 +132,28 @@ npm run package
 ```
 src/
 ├── domain/        # Core types, formatting, and prediction algorithms
-├── storage/       # Credentials (SecretStorage) and history (globalState)
-├── fetchers/      # ApiFetcher, ScrapingFetcher, and FetcherSelector
+├── storage/       # API key profiles (SecretStorage) and per-key history (globalState)
+├── fetchers/      # UsageFetcher (OpenCode Go usage endpoint)
+├── polling/       # QuotaPoller (schedule, backoff, Retry-After, debounce)
 ├── ui/            # StatusBarItem and QuickPick UI components
-├── commands/      # All 7 VSCode commands
+├── commands/      # VSCode command handlers
 ├── i18n.ts        # Internationalization (English/Spanish)
 └── extension.ts   # Extension entry point (activation, polling, lifecycle)
 ```
 
 ## Troubleshooting
 
-### "Could not find quota usage data in HTML"
+### `OC Go: invalid key` in status bar
 
-This usually means the cookie is invalid or expired. Try:
-1. Log out and log back in to [opencode.ai](https://opencode.ai)
-2. Get a fresh `auth` cookie from DevTools
-3. Re-configure credentials with the new cookie
+OpenCode rejected the monitored key (it was revoked or mistyped). Click the status bar to select another key, or run **OpenCode Go: Replace API Key** to paste a new value.
 
-### "Auth expired" in status bar
+### "Unexpected response from OpenCode"
 
-Your session cookie has expired. Follow the steps above to get a new one.
+The usage endpoint answered with data the extension does not understand. Check for an extension update; the extension retries with backoff in the meantime.
 
 ### Debug mode
 
-Enable debug logging by setting `opencodeGoQuota.debug` to `true` in settings. View logs in `View → Output → OpenCode Go Monitor`.
+Enable debug logging by setting `opencodeGoQuota.debug` to `true` in settings. View logs in `View → Output → OpenCode Go Quota`. Logs never contain API keys.
 
 ## License
 

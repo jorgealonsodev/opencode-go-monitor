@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerRefreshCommand, notifyAuthRejected, notifyRefreshFailed } from '../src/commands/refresh';
+import { registerRefreshCommand, notifyAuthRejected, notifyRefreshFailed, describeError } from '../src/commands/refresh';
 import { registerShowDetailsCommand } from '../src/commands/showDetails';
 import { registerExportHistoryCommand } from '../src/commands/exportHistory';
 import { registerOpenDashboardCommand } from '../src/commands/openDashboard';
 import { HistoryStorage, historyKey } from '../src/storage/history';
 import { ProfileStore } from '../src/storage/profiles';
 import { createMemento, createSecrets } from './fakes';
-import type { StatusBarManager } from '../src/ui/statusBar';
-import type { QuotaFetcher, QuotaSnapshot } from '../src/domain/types';
-import { AuthError, CredentialsError, NetworkError } from '../src/domain/errors';
+import type { QuotaSnapshot } from '../src/domain/types';
+import { AuthError, CredentialsError, NetworkError, ParseError } from '../src/domain/errors';
 import type { QuickPickItem, QuickPick, CreateQuickPick } from '../src/ui/quickPick';
 import type {
   DisposableLike,
@@ -70,32 +69,11 @@ function createMockHistoryStorage(snapshots: QuotaSnapshot[] = []): HistoryStora
   return {
     append: vi.fn(),
     getAll: vi.fn(() => snapshots),
-    getLast24h: vi.fn(() => snapshots),
     cleanup: vi.fn(),
     exportToJson: vi.fn(() =>
       snapshots.length > 0 ? JSON.stringify({ profile: 'Personal', entries: snapshots }) : undefined,
     ),
   } as unknown as HistoryStorage;
-}
-
-function createMockFetcher(snapshot?: QuotaSnapshot): QuotaFetcher {
-  return {
-    fetch: vi.fn(async () => {
-      if (!snapshot) throw new Error('fetch failed');
-      return snapshot;
-    }),
-    isAvailable: vi.fn(async () => true),
-  };
-}
-
-function createMockStatusBarManager(): StatusBarManager {
-  return {
-    create: vi.fn(),
-    update: vi.fn(),
-    setState: vi.fn(),
-    dispose: vi.fn(),
-    item: undefined,
-  } as unknown as StatusBarManager;
 }
 
 function createMockQuickPick<T extends QuickPickItem>(): QuickPick<T> & {
@@ -208,6 +186,21 @@ describe('notifyAuthRejected', () => {
   });
 });
 
+describe('describeError', () => {
+  const es = getTranslations('es');
+
+  it('translates unexpected responses and timeouts', () => {
+    expect(describeError(new ParseError('anything'), mockT)).toBe(mockT.errUnexpectedResponse);
+    expect(describeError(new ParseError('anything'), es)).toBe(es.errUnexpectedResponse);
+    expect(describeError(new NetworkError('Request timed out'), es)).toBe(es.errRequestTimedOut);
+  });
+
+  it('falls back to the error message', () => {
+    expect(describeError(new NetworkError('HTTP 500', 500), mockT)).toBe('HTTP 500');
+    expect(describeError('boom', mockT)).toBe('boom');
+  });
+});
+
 describe('notifyRefreshFailed', () => {
   it('shows the translated failure reason', () => {
     const window = createMockWindow();
@@ -235,61 +228,110 @@ describe('notifyRefreshFailed', () => {
 /* ------------------------------------------------------------------ */
 
 describe('registerShowDetailsCommand', () => {
-  let history: HistoryStorage;
-  let statusBar: StatusBarManager;
   let window: WindowLike;
-  let { commands, invoke } = createMockCommands();
+  let commands: CommandsLike;
+  let invoke: (...args: any[]) => any;
 
   beforeEach(() => {
     const mocks = createMockCommands();
     commands = mocks.commands;
     invoke = mocks.invoke;
+    window = createMockWindow();
   });
+
+  function register(
+    history: HistoryStorage,
+    factory: CreateQuickPick,
+    options: { refresh?: () => Promise<void>; profileName?: string } = {},
+  ) {
+    const refresher = { refresh: vi.fn(options.refresh ?? (async () => {})) };
+    registerShowDetailsCommand({
+      history,
+      createQuickPick: factory,
+      window,
+      commands,
+      t: mockT,
+      refresher,
+      activeProfileName: () => options.profileName,
+    });
+    return refresher;
+  }
+
+  /** Opens the details pick and accepts the item whose action is `action`. */
+  async function choose(action: string, profileName = 'Personal') {
+    const { factory, qp } = createMockFactory();
+    register(createMockHistoryStorage([makeSnapshot(Date.now())]), factory, { profileName });
+    const promise = invoke();
+    qp.selectedItems = [qp.items.find((i) => (i as { action?: string }).action === action)!];
+    qp._fireAccept();
+    await promise;
+  }
 
   it('registers the correct command', () => {
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
-    const { factory } = createMockFactory();
-
-    registerShowDetailsCommand(history, statusBar, factory, window, commands);
-    expect(commands.registerCommand).toHaveBeenCalledWith(
-      'opencodeGoQuota.showDetails',
-      expect.any(Function),
-    );
+    register(createMockHistoryStorage(), createMockFactory().factory);
+    expect(commands.registerCommand).toHaveBeenCalledWith('opencodeGoQuota.showDetails', expect.any(Function));
   });
 
-  it('shows quick pick with latest snapshot when history exists', async () => {
-    const snapshot = makeSnapshot(Date.now());
-    history = createMockHistoryStorage([snapshot]);
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
+  it('shows the latest snapshot with Switch API key for the active profile', async () => {
+    const history = createMockHistoryStorage([makeSnapshot(Date.now())]);
     const { factory, qp } = createMockFactory();
+    const refresher = register(history, factory, { profileName: 'Team 1' });
 
-    registerShowDetailsCommand(history, statusBar, factory, window, commands);
     const promise = invoke();
     qp._fireHide();
     await promise;
 
-    expect(history.getAll).toHaveBeenCalled();
-    expect(qp.items.length).toBeGreaterThan(0);
+    expect(qp.items.some((i) => i.label === '$(key) Switch API key (Team 1)')).toBe(true);
+    expect(refresher.refresh).not.toHaveBeenCalled();
     expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
 
-  it('shows error when history is empty', async () => {
-    history = createMockHistoryStorage([]);
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
-    const { factory } = createMockFactory();
+  it('without history, refreshes through the poller and shows the new data', async () => {
+    const snapshots: QuotaSnapshot[] = [];
+    const history = createMockHistoryStorage(snapshots);
+    const { factory, qp } = createMockFactory();
+    const refresher = register(history, factory, {
+      profileName: 'Personal',
+      refresh: async () => {
+        snapshots.push(makeSnapshot(Date.now()));
+      },
+    });
 
-    registerShowDetailsCommand(history, statusBar, factory, window, commands);
+    const promise = invoke();
+    await vi.waitFor(() => expect(qp.items.length).toBeGreaterThan(0));
+    qp._fireHide();
+    await promise;
+
+    expect(refresher.refresh).toHaveBeenCalledTimes(1);
+    expect(history.append).not.toHaveBeenCalled();
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
+  });
+
+  it('shows the no-data message when the refresh produced nothing', async () => {
+    const refresher = register(createMockHistoryStorage([]), createMockFactory().factory, { profileName: 'Personal' });
     await invoke();
 
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      mockT.msgNoDataAvailable,
-      mockT.msgRefreshNow,
-      mockT.actionAddApiKey,
-    );
+    expect(refresher.refresh).toHaveBeenCalledTimes(1);
+    expect(window.showErrorMessage).toHaveBeenCalledWith(mockT.msgNoDataAvailable, mockT.msgRefreshNow, mockT.actionAddApiKey);
+  });
+
+  it('does not refresh without an active profile', async () => {
+    const refresher = register(createMockHistoryStorage([]), createMockFactory().factory);
+    await invoke();
+
+    expect(refresher.refresh).not.toHaveBeenCalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(mockT.msgNoDataAvailable, mockT.msgRefreshNow, mockT.actionAddApiKey);
+  });
+
+  it.each([
+    ['refresh', 'opencodeGoQuota.refresh'],
+    ['openDashboard', 'opencodeGoQuota.openDashboard'],
+    ['switchApiKey', 'opencodeGoQuota.selectApiKey'],
+    ['addApiKey', 'opencodeGoQuota.configure'],
+    ['removeAllApiKeys', 'opencodeGoQuota.clearCredentials'],
+  ])('routes %s to %s', async (action, command) => {
+    await choose(action);
+    expect(commands.executeCommand).toHaveBeenCalledWith(command);
   });
 });
 

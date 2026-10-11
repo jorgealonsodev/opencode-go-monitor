@@ -3,21 +3,31 @@ export type Locale = 'en' | 'es';
 export interface Translations {
   // Status bar
   statusBarTooltip: (label: string, pct: string) => string;
-  statusBarText: (label: string, pct: string, reset: string) => string;
+  /** `value` is `42% · 2h 13m`, `limit · 2h 13m` or `?%`. */
+  statusBarText: (label: string, value: string) => string;
+  statusBarTextWithProfile: (name: string, label: string, value: string) => string;
   statusBarRolling: string;
   statusBarWeekly: string;
   statusBarMonthly: string;
   statusBarReset: (time: string) => string;
   statusBarUpdated: (time: string) => string;
+  statusBarFooter: (name: string, time: string) => string;
+  statusBarLimit: string;
+  statusBarLimitReached: (time: string) => string;
+  statusBarSwitchApiKey: string;
   
   // States
   stateSetup: string;
   stateLoading: string;
-  stateAuthExpired: string;
+  stateInvalidKey: string;
   stateError: string;
+  tooltipSetup: string;
+  tooltipInvalidKey: (name: string) => string;
   
   // Messages
   msgFailedToRefresh: (error: string) => string;
+  errUnexpectedResponse: string;
+  errRequestTimedOut: string;
   msgNoDataAvailable: string;
   msgRefreshNow: string;
   msgWindowChanged: (label: string) => string;
@@ -41,8 +51,10 @@ export interface Translations {
   detailsPrediction: (time: string) => string;
   detailsNoPrediction: string;
   detailsHistoryCount: (count: number) => string;
-  detailsReconfigure: string;
-  detailsLogout: string;
+  detailsOpenDashboard: string;
+  detailsForceRefresh: string;
+  detailsSwitchApiKey: (name: string) => string;
+  detailsRemoveAllApiKeys: string;
   
   // API keys (profiles)
   promptApiKeyName: string;
@@ -84,21 +96,30 @@ export interface Translations {
 const en: Translations = {
   // Status bar
   statusBarTooltip: (label, pct) => `**OpenCode Go - ${label} Usage: ${pct}**`,
-  statusBarText: (label, pct, reset) => `OC Go ${label}: ${pct} · ${reset}`,
+  statusBarText: (label, value) => `OC Go ${label}: ${value}`,
+  statusBarTextWithProfile: (name, label, value) => `OC Go · ${name} · ${label}: ${value}`,
   statusBarRolling: 'Rolling',
   statusBarWeekly: 'Weekly',
   statusBarMonthly: 'Monthly',
   statusBarReset: (time) => `resets in ${time}`,
-  statusBarUpdated: (time) => `Updated: ${time}`,
+  statusBarUpdated: (time) => `Updated ${time}`,
+  statusBarFooter: (name, time) => `Key: ${name} | Updated ${time}`,
+  statusBarLimit: 'limit',
+  statusBarLimitReached: (time) => `Limit reached — resets in ${time}`,
+  statusBarSwitchApiKey: 'Switch API key',
   
   // States
-  stateSetup: 'OC Go: setup',
+  stateSetup: 'OC Go: add API key',
   stateLoading: 'OC Go: loading...',
-  stateAuthExpired: 'OC Go: auth expired',
+  stateInvalidKey: 'OC Go: invalid key',
   stateError: 'OC Go: error',
+  tooltipSetup: 'No OpenCode Go API key configured. Click to add one.',
+  tooltipInvalidKey: (name) => `API key '${name}' was rejected (401/403). Click to choose another key.`,
   
   // Messages
   msgFailedToRefresh: (error) => `Failed to refresh quota: ${error}`,
+  errUnexpectedResponse: 'Unexpected response from OpenCode — the extension may need an update.',
+  errRequestTimedOut: 'Request timed out',
   msgNoDataAvailable: 'No quota data available. Try refreshing manually.',
   msgRefreshNow: 'Refresh Now',
   msgWindowChanged: (label) => `Display window changed to: ${label}`,
@@ -122,8 +143,10 @@ const en: Translations = {
   detailsPrediction: (time) => `Predicted exhaustion: ${time}`,
   detailsNoPrediction: 'Not enough data for prediction',
   detailsHistoryCount: (count) => `${count} snapshots in history`,
-  detailsReconfigure: 'Reconfigure credentials',
-  detailsLogout: 'Logout (Clear credentials)',
+  detailsOpenDashboard: 'Open OpenCode dashboard',
+  detailsForceRefresh: 'Force refresh',
+  detailsSwitchApiKey: (name) => `Switch API key (${name})`,
+  detailsRemoveAllApiKeys: 'Remove All API Keys',
   
   // API keys (profiles)
   promptApiKeyName: 'Name for this API key',
@@ -165,21 +188,30 @@ const en: Translations = {
 const es: Translations = {
   // Status bar
   statusBarTooltip: (label, pct) => `**OpenCode Go - Uso ${label}: ${pct}**`,
-  statusBarText: (label, pct, reset) => `OC Go ${label}: ${pct} · ${reset}`,
+  statusBarText: (label, value) => `OC Go ${label}: ${value}`,
+  statusBarTextWithProfile: (name, label, value) => `OC Go · ${name} · ${label}: ${value}`,
   statusBarRolling: 'Continuo',
   statusBarWeekly: 'Semanal',
   statusBarMonthly: 'Mensual',
   statusBarReset: (time) => `reset en ${time}`,
-  statusBarUpdated: (time) => `Actualizado: ${time}`,
+  statusBarUpdated: (time) => `Actualizado ${time}`,
+  statusBarFooter: (name, time) => `Clave: ${name} | Actualizado ${time}`,
+  statusBarLimit: 'límite',
+  statusBarLimitReached: (time) => `Límite alcanzado — reset en ${time}`,
+  statusBarSwitchApiKey: 'Cambiar clave de API',
   
   // States
-  stateSetup: 'OC Go: configurar',
+  stateSetup: 'OC Go: añadir clave de API',
   stateLoading: 'OC Go: cargando...',
-  stateAuthExpired: 'OC Go: auth expirada',
+  stateInvalidKey: 'OC Go: clave no válida',
   stateError: 'OC Go: error',
+  tooltipSetup: 'No hay ninguna clave de API de OpenCode Go configurada. Haz clic para añadir una.',
+  tooltipInvalidKey: (name) => `Se rechazó la clave de API '${name}' (401/403). Haz clic para elegir otra clave.`,
   
   // Messages
   msgFailedToRefresh: (error) => `Error al actualizar quota: ${error}`,
+  errUnexpectedResponse: 'Respuesta inesperada de OpenCode: puede que la extensión necesite una actualización.',
+  errRequestTimedOut: 'Se agotó el tiempo de espera de la solicitud',
   msgNoDataAvailable: 'No hay datos de quota disponibles. Intenta actualizar manualmente.',
   msgRefreshNow: 'Actualizar Ahora',
   msgWindowChanged: (label) => `Ventana cambiada a: ${label}`,
@@ -203,8 +235,10 @@ const es: Translations = {
   detailsPrediction: (time) => `Agotamiento predicho: ${time}`,
   detailsNoPrediction: 'No hay suficientes datos para predicción',
   detailsHistoryCount: (count) => `${count} snapshots en el historial`,
-  detailsReconfigure: 'Reconfigurar credenciales',
-  detailsLogout: 'Cerrar sesión (Borrar credenciales)',
+  detailsOpenDashboard: 'Abrir el panel de OpenCode',
+  detailsForceRefresh: 'Forzar actualización',
+  detailsSwitchApiKey: (name) => `Cambiar clave de API (${name})`,
+  detailsRemoveAllApiKeys: 'Eliminar todas las claves de API',
   
   // API keys (profiles)
   promptApiKeyName: 'Nombre para esta clave de API',

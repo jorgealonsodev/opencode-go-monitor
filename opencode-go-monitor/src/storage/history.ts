@@ -64,11 +64,6 @@ export class HistoryStorage {
     return profile ? read(this.memento, historyKey(profile.id), profile.id) : [];
   }
 
-  getLast24h(): QuotaSnapshot[] {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    return this.getAll().filter((s) => s.timestamp >= cutoff);
-  }
-
   /** Trims every profile's history by age and size. The legacy key is never touched. */
   async cleanup(): Promise<void> {
     const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
@@ -98,7 +93,9 @@ export class HistoryStorage {
 
 /**
  * Moves the pre-1.0 history to `profileId` (entries without a profile id get it)
- * and deletes the legacy key. Idempotent: does nothing once the legacy key is gone.
+ * and deletes the legacy key. Idempotent: does nothing once the legacy key is gone,
+ * and a re-run after an interruption (profile key written, legacy key not yet
+ * deleted) skips entries already present, matched by timestamp.
  */
 export async function migrateLegacyHistory(memento: MementoLike, profileId: string): Promise<void> {
   const legacy = memento.get<StoredEntry[]>(LEGACY_HISTORY_KEY);
@@ -106,10 +103,13 @@ export async function migrateLegacyHistory(memento: MementoLike, profileId: stri
     return;
   }
   const key = historyKey(profileId);
-  const merged = [
-    ...legacy.map((entry) => toEntry(entry, profileId)),
-    ...read(memento, key, profileId),
-  ].sort((a, b) => a.timestamp - b.timestamp);
+  const byTimestamp = new Map<number, QuotaSnapshot>();
+  for (const entry of [...read(memento, key, profileId), ...legacy.map((e) => toEntry(e, profileId))]) {
+    if (!byTimestamp.has(entry.timestamp)) {
+      byTimestamp.set(entry.timestamp, entry);
+    }
+  }
+  const merged = [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp);
   await memento.update(key, merged);
   await memento.update(LEGACY_HISTORY_KEY, undefined);
 }

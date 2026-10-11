@@ -89,20 +89,6 @@ describe('HistoryStorage', () => {
     expect(p2Prediction).not.toBeNull();
   });
 
-  describe('getLast24h', () => {
-    it('returns only snapshots from the last 24 hours', async () => {
-      const now = Date.now();
-      vi.setSystemTime(now);
-      const recent = makeSnapshot(now - 12 * 60 * 60 * 1000);
-      const old = makeSnapshot(now - 25 * 60 * 60 * 1000);
-      await storage.append(recent);
-      await storage.append(old);
-      const result = storage.getLast24h();
-      expect(result).toHaveLength(1);
-      expect(result[0].timestamp).toBe(recent.timestamp);
-    });
-  });
-
   describe('cleanup', () => {
     it('removes snapshots older than 30 days in every profile', async () => {
       const now = Date.now();
@@ -185,6 +171,24 @@ describe('migrateLegacyHistory (AC10)', () => {
     });
     await migrateLegacyHistory(memento, 'p1');
     expect((memento.data.get(historyKey('p1')) as QuotaSnapshot[]).map((e) => e.timestamp)).toEqual([1, 5]);
+  });
+
+  it('does not duplicate entries when re-run after an interrupted migration (R3-migration-interrupt-duplicates)', async () => {
+    const legacy = [legacyEntry(1, 'scraping'), legacyEntry(2, 'api')];
+    const memento = createMemento({ [LEGACY_HISTORY_KEY]: legacy });
+    // Simulate an interruption: the profile key was written, the legacy key was not deleted.
+    const update = vi.mocked(memento.update);
+    update.mockImplementationOnce(update.getMockImplementation()!).mockImplementationOnce(async () => {
+      throw new Error('interrupted');
+    });
+    await expect(migrateLegacyHistory(memento, 'p1')).rejects.toThrow('interrupted');
+    expect(memento.data.has(LEGACY_HISTORY_KEY)).toBe(true);
+
+    await memento.update(historyKey('p1'), [...(memento.data.get(historyKey('p1')) as QuotaSnapshot[]), makeSnapshot(3)]);
+    await migrateLegacyHistory(memento, 'p1');
+
+    expect((memento.data.get(historyKey('p1')) as QuotaSnapshot[]).map((e) => e.timestamp)).toEqual([1, 2, 3]);
+    expect(memento.data.has(LEGACY_HISTORY_KEY)).toBe(false);
   });
 
   it('does nothing without a legacy key', async () => {

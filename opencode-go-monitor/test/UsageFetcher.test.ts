@@ -334,11 +334,4 @@ describe('UsageFetcher', () => {
       expect(output).toContain(`[${SYNTHETIC_KEY.length} chars]`);
     });
   });
-
-  describe('isAvailable', () => {
-    it('reflects whether a profile is active', async () => {
-      await expect(new UsageFetcher(provider()).isAvailable()).resolves.toBe(true);
-      await expect(new UsageFetcher(provider(null)).isAvailable()).resolves.toBe(false);
-    });
-  });
 });
