@@ -46,3 +46,12 @@ Console endpoint returned HTTP 401 with stored cookie (sessions expire). The API
 - RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-b73d4db83b4f18a7).
 - Advisory (non-blocking): R3-cookie-as-bearer (temporary adapter sends stored cookie as Bearer → fixed by T2b), R3-limit-reached-unproved (status bar rendering of `limit-reached` untested → T2d), R3-poll-auth-untested (poll-loop AuthError path untested → T2b).
 - Reviewed boundary advances to `9280583`.
+
+### Review — T2b (`62d5e3e`)
+- RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-de673bca150bdb90).
+- Advisory (non-blocking), all folded into T2c:
+  - R3-keyring-transient-setup — `ProfileStore.getActive` has no cache; a transient undefined from the Linux keyring stops polling in setup although a profile exists.
+  - R3-cross-window-stuck-loading — result discarded because another window changed the active profile leaves the status bar in `loading` until next interval.
+  - R3-remove-history-promise — Remove/Remove All copy promises history deletion that T2b doesn't perform (T2c implements it).
+  - R3-initial-snapshot-trailing — initial snapshot from validation does not cancel a pending trailing debounce fetch.
+- Reviewed boundary advances to `62d5e3e`.
