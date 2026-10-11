@@ -273,10 +273,63 @@ describe('QuotaPoller', () => {
       await flush();
 
       active = 'p2';
+      fetchImpl = async () => snapshot('p2', 55);
+      pending.resolve(snapshot('p1'));
+      await flush();
+
+      // The stale result is dropped and the new active profile is fetched at once,
+      // so the status bar never stays in `loading`.
+      expect(deps.onSnapshot).toHaveBeenCalledTimes(1);
+      expect(deps.onSnapshot).toHaveBeenCalledWith(expect.objectContaining({ profileId: 'p2' }));
+      expect(fetcher.fetch).toHaveBeenCalledTimes(2);
+      expect(deps.setState).toHaveBeenLastCalledWith('loading');
+      expect(deps.onSnapshot.mock.invocationCallOrder[0]).toBeGreaterThan(
+        deps.setState.mock.invocationCallOrder.at(-1)!,
+      );
+    });
+
+    it('shows setup when another window removed every profile during a fetch', async () => {
+      const pending = deferred<QuotaSnapshot>();
+      fetchImpl = () => pending.promise;
+      poller.start();
+      await flush();
+
+      active = undefined;
       pending.resolve(snapshot('p1'));
       await flush();
 
       expect(deps.onSnapshot).not.toHaveBeenCalled();
+      expect(deps.setState).toHaveBeenLastCalledWith('setup');
+    });
+
+    it('fetches the new profile when an error arrives after another window switched', async () => {
+      const pending = deferred<QuotaSnapshot>();
+      fetchImpl = () => pending.promise;
+      poller.start();
+      await flush();
+
+      active = 'p2';
+      fetchImpl = async () => snapshot('p2');
+      pending.reject(new NetworkError('offline'));
+      await flush();
+
+      expect(deps.setState).not.toHaveBeenCalledWith('error');
+      expect(deps.onSnapshot).toHaveBeenCalledWith(expect.objectContaining({ profileId: 'p2' }));
+    });
+
+    it('an initial snapshot cancels a pending trailing debounce fetch', async () => {
+      poller.start();
+      await flush();
+      await poller.refresh(); // leading edge
+      await poller.refresh(); // schedules a trailing fetch
+      expect(fetcher.fetch).toHaveBeenCalledTimes(2);
+
+      active = 'p2';
+      await poller.activeProfileChanged(snapshot('p2'));
+      await vi.advanceTimersByTimeAsync(DEBOUNCE_MS);
+
+      expect(fetcher.fetch).toHaveBeenCalledTimes(2);
+      expect(deps.onSnapshot).toHaveBeenLastCalledWith(expect.objectContaining({ profileId: 'p2' }));
     });
 
     it('uses an initial snapshot without a second request', async () => {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { registerApiKeyCommands, type ApiKeyCommandDeps } from '../src/commands/apiKeys';
 import { ProfileStore, apiKeySecretKey } from '../src/storage/profiles';
+import { historyKey } from '../src/storage/history';
 import { AuthError, NetworkError } from '../src/domain/errors';
 import type { ActiveKey, ActiveKeyProvider, QuotaFetcher, QuotaSnapshot } from '../src/domain/types';
 import type { CommandsLike, WindowLike } from '../src/commands/types';
@@ -340,6 +341,8 @@ describe('API key commands', () => {
     it('removing the active profile switches to the next and says so', async () => {
       await store.add('Personal', KEY_A);
       await store.add('Team', KEY_B);
+      await memento.update(historyKey('id-1'), [snapshot('id-1')]);
+      await memento.update(historyKey('id-2'), [snapshot('id-2')]);
       window.showQuickPick.mockImplementationOnce(async (items: any[]) => items[0]);
       window.showWarningMessage.mockResolvedValueOnce('Remove');
 
@@ -347,6 +350,8 @@ describe('API key commands', () => {
 
       expect(store.list().map((p) => p.name)).toEqual(['Team']);
       expect(secrets.data.has(apiKeySecretKey('id-1'))).toBe(false);
+      expect(memento.data.has(historyKey('id-1'))).toBe(false);
+      expect(memento.data.get(historyKey('id-2'))).toEqual([snapshot('id-2')]);
       expect(window.showInformationMessage).toHaveBeenCalledWith("Removed 'Personal'. Now monitoring 'Team'.");
       expect(onActiveProfileChanged).toHaveBeenCalledTimes(1);
     });
@@ -387,6 +392,8 @@ describe('API key commands', () => {
     it('confirms with the count and removes everything', async () => {
       await store.add('Personal', KEY_A);
       await store.add('Team', KEY_B);
+      await memento.update(historyKey('id-1'), [snapshot('id-1')]);
+      await memento.update(historyKey('id-2'), [snapshot('id-2')]);
       window.showWarningMessage.mockResolvedValueOnce('Remove all');
 
       await cmds.run('opencodeGoQuota.clearCredentials');
@@ -398,6 +405,8 @@ describe('API key commands', () => {
       );
       expect(store.list()).toEqual([]);
       expect(secrets.data.size).toBe(0);
+      expect(memento.data.has(historyKey('id-1'))).toBe(false);
+      expect(memento.data.has(historyKey('id-2'))).toBe(false);
       expect(onActiveProfileChanged).toHaveBeenCalledTimes(1);
     });
 

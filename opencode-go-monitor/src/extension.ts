@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProfileStore, HistoryStorage, removeLegacyData } from './storage';
+import { ProfileStore, HistoryStorage, removeLegacyData, migrateLegacyHistory } from './storage';
 import { UsageFetcher } from './fetchers';
 import { StatusBarManager, singleClickCommand } from './ui/statusBar';
 import {
@@ -143,7 +143,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
     });
   });
   const profileStore = new ProfileStore(context.globalState, context.secrets);
-  const historyStorage = new HistoryStorage(context.globalState);
+  const historyStorage = new HistoryStorage(context.globalState, () => profileStore.getActiveProfile());
+  // Pre-1.0 history stays untouched until the first profile exists (FR4); this
+  // also completes a migration interrupted after that profile was created.
+  const firstProfile = profileStore.list()[0];
+  if (firstProfile) {
+    await migrateLegacyHistory(context.globalState, firstProfile.id);
+  }
   await historyStorage.cleanup();
   outputChannel.appendLine(`[init] Storage initialized: ${profileStore.list().length} API key(s)`);
 

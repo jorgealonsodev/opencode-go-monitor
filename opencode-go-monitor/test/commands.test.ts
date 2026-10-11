@@ -3,7 +3,9 @@ import { registerRefreshCommand, notifyAuthRejected, notifyRefreshFailed } from 
 import { registerShowDetailsCommand } from '../src/commands/showDetails';
 import { registerExportHistoryCommand } from '../src/commands/exportHistory';
 import { registerOpenDashboardCommand } from '../src/commands/openDashboard';
-import type { HistoryStorage } from '../src/storage/history';
+import { HistoryStorage, historyKey } from '../src/storage/history';
+import { ProfileStore } from '../src/storage/profiles';
+import { createMemento, createSecrets } from './fakes';
 import type { StatusBarManager } from '../src/ui/statusBar';
 import type { QuotaFetcher, QuotaSnapshot } from '../src/domain/types';
 import { AuthError, CredentialsError, NetworkError } from '../src/domain/errors';
@@ -70,10 +72,9 @@ function createMockHistoryStorage(snapshots: QuotaSnapshot[] = []): HistoryStora
     getAll: vi.fn(() => snapshots),
     getLast24h: vi.fn(() => snapshots),
     cleanup: vi.fn(),
-    exportToJson: vi.fn(() => JSON.stringify(snapshots)),
-    getCachedStrategy: vi.fn(),
-    setCachedStrategy: vi.fn(),
-    clearCachedStrategy: vi.fn(),
+    exportToJson: vi.fn(() =>
+      snapshots.length > 0 ? JSON.stringify({ profile: 'Personal', entries: snapshots }) : undefined,
+    ),
   } as unknown as HistoryStorage;
 }
 
@@ -331,7 +332,11 @@ describe('registerExportHistoryCommand', () => {
     await invoke();
 
     expect(window.showSaveDialog).toHaveBeenCalled();
-    expect(writeSpy).toHaveBeenCalledWith('/tmp/history.json', JSON.stringify([snapshot]), 'utf-8');
+    expect(writeSpy).toHaveBeenCalledWith(
+      '/tmp/history.json',
+      JSON.stringify({ profile: 'Personal', entries: [snapshot] }),
+      'utf-8',
+    );
     expect(window.showInformationMessage).toHaveBeenCalledWith(
       expect.stringContaining('History exported'),
     );
@@ -342,6 +347,47 @@ describe('registerExportHistoryCommand', () => {
     window = createMockWindow();
 
     registerExportHistoryCommand(history, window, commands, mockT);
+    await invoke();
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(mockT.msgNoDataAvailable);
+    expect(window.showSaveDialog).not.toHaveBeenCalled();
+  });
+
+  it('exports only the active profile and never the key (FR4, AC12)', async () => {
+    const KEY = 'sk-test-synthetic-key-9876';
+    const memento = createMemento();
+    const secrets = createSecrets();
+    const ids = ['id-1', 'id-2'];
+    const store = new ProfileStore(memento, secrets, () => ids.shift()!);
+    await store.add('Personal', KEY);
+    await store.add('Team', 'sk-test-other-key-5555');
+    const realHistory = new HistoryStorage(memento, () => store.getActiveProfile());
+    await realHistory.append({ ...makeSnapshot(1), profileId: 'id-1' });
+    await realHistory.append({ ...makeSnapshot(2), profileId: 'id-2' });
+
+    window = createMockWindow();
+    const uri: UriLike = { fsPath: '/tmp/history.json', toString: () => '/tmp/history.json', scheme: 'file' };
+    (window.showSaveDialog as ReturnType<typeof vi.fn>).mockResolvedValue(uri);
+    const writeSpy = vi.fn();
+
+    registerExportHistoryCommand(realHistory, window, commands, mockT, undefined, writeSpy);
+    await invoke();
+
+    const written = writeSpy.mock.calls[0][1] as string;
+    expect(JSON.parse(written)).toEqual({ profile: 'Personal', entries: [{ ...makeSnapshot(1), profileId: 'id-1' }] });
+    for (let i = 0; i + 4 <= KEY.length; i++) {
+      expect(written).not.toContain(KEY.slice(i, i + 4));
+    }
+  });
+
+  it('shows the no-data message when the active profile has no entries', async () => {
+    const memento = createMemento({ [historyKey('other')]: [makeSnapshot(1)] });
+    const store = new ProfileStore(memento, createSecrets(), () => 'id-1');
+    await store.add('Personal', 'sk-test-synthetic-key-9876');
+    const realHistory = new HistoryStorage(memento, () => store.getActiveProfile());
+    window = createMockWindow();
+
+    registerExportHistoryCommand(realHistory, window, commands, mockT);
     await invoke();
 
     expect(window.showErrorMessage).toHaveBeenCalledWith(mockT.msgNoDataAvailable);

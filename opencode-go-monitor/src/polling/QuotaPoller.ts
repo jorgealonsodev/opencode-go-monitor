@@ -97,6 +97,8 @@ export class QuotaPoller {
       return;
     }
     if (initial && initial.profileId === activeId) {
+      // The validation response is fresh data: a pending trailing fetch would be redundant.
+      this.cancelTrailing();
       this.lastTriggerAt = this.clock.now();
       await this.accept(initial);
       return;
@@ -127,10 +129,7 @@ export class QuotaPoller {
   dispose(): void {
     this.disposed = true;
     this.clearPollTimer();
-    if (this.trailingTimer !== undefined) {
-      this.clock.clearTimeout(this.trailingTimer);
-      this.trailingTimer = undefined;
-    }
+    this.cancelTrailing();
   }
 
   private trigger(manual: boolean): Promise<void> {
@@ -176,14 +175,14 @@ export class QuotaPoller {
       const snapshot = await this.deps.fetcher.fetch();
       if (this.isStale(generation, profileId) || snapshot.profileId !== profileId) {
         this.log('[poll] discarding result for a profile that is no longer active');
-        this.scheduleIfCurrent(generation);
+        this.afterDiscard(generation);
         return;
       }
       await this.accept(snapshot);
     } catch (err) {
       if (this.isStale(generation, profileId)) {
         this.log('[poll] discarding error for a profile that is no longer active');
-        this.scheduleIfCurrent(generation);
+        this.afterDiscard(generation);
         return;
       }
       this.handleError(err, manual);
@@ -243,11 +242,24 @@ export class QuotaPoller {
     return generation !== this.generation || this.deps.activeProfileId() !== profileId;
   }
 
-  /** After a discarded result, keep polling unless a newer generation owns the schedule. */
-  private scheduleIfCurrent(generation: number): void {
-    if (generation === this.generation && this.pollTimer === undefined) {
-      this.schedule(this.intervalMs());
+  /**
+   * After a discarded result: a newer generation (a local profile change) already
+   * owns the follow-up fetch. Otherwise the active profile changed elsewhere (e.g.
+   * in another window), so treat it as a profile change: fetch the new profile now
+   * instead of leaving the status bar in `loading` until the next interval.
+   */
+  private afterDiscard(generation: number): void {
+    if (generation === this.generation && !this.disposed) {
+      void this.activeProfileChanged();
     }
+  }
+
+  private cancelTrailing(): void {
+    if (this.trailingTimer !== undefined) {
+      this.clock.clearTimeout(this.trailingTimer);
+      this.trailingTimer = undefined;
+    }
+    this.trailingManual = false;
   }
 
   private stop(state: PollerState): void {

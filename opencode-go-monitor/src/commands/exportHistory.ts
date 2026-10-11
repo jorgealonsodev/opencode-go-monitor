@@ -14,8 +14,9 @@ export function registerExportHistoryCommand(
   writeFileSync: (path: string, data: string, encoding?: string) => void = fs.writeFileSync as unknown as (path: string, data: string, encoding?: string) => void,
 ): DisposableLike {
   return commands.registerCommand('opencodeGoQuota.exportHistory', async () => {
-    const history = historyStorage.getAll();
-    if (history.length === 0) {
+    // Active profile only, as { profile, entries }; never contains the key.
+    const json = historyStorage.exportToJson();
+    if (json === undefined) {
       await window.showErrorMessage(t.msgNoDataAvailable);
       return;
     }
@@ -33,7 +34,6 @@ export function registerExportHistoryCommand(
     }
 
     try {
-      const json = historyStorage.exportToJson();
       writeFileSync(uri.fsPath, json, 'utf-8');
       await window.showInformationMessage(t.msgHistoryExported(uri.fsPath));
     } catch (err) {

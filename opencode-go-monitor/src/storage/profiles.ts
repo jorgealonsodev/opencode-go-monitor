@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { ActiveKey, ActiveKeyProvider } from '../domain/types';
-import type { MementoLike } from './history';
+import { deleteAllHistory, deleteHistory, migrateLegacyHistory, type MementoLike } from './history';
 
 export interface SecretStorageLike {
   get(key: string): Thenable<string | undefined>;
@@ -85,6 +85,12 @@ export function keyHint(key: string): string {
  * Nothing here is registered with `setKeysForSync`.
  */
 export class ProfileStore implements ActiveKeyProvider {
+  /**
+   * Last key known per profile (memory only), so a transient `undefined` from
+   * SecretStorage (e.g. a slow Linux keyring) does not drop polling into setup.
+   */
+  private readonly keyCache = new Map<string, string>();
+
   constructor(
     private readonly memento: MementoLike,
     private readonly secrets: SecretStorageLike,
@@ -107,7 +113,11 @@ export class ProfileStore implements ActiveKeyProvider {
     if (!profile) {
       return null;
     }
-    const key = await this.secrets.get(apiKeySecretKey(profile.id));
+    const stored = await this.secrets.get(apiKeySecretKey(profile.id));
+    if (stored) {
+      this.keyCache.set(profile.id, stored);
+    }
+    const key = stored ?? this.keyCache.get(profile.id);
     return key ? { id: profile.id, name: profile.name, key } : null;
   }
 
@@ -122,11 +132,15 @@ export class ProfileStore implements ActiveKeyProvider {
     }
 
     const profile: Profile = { id: this.newId(), name: normalizeProfileName(rawName), createdAt: Date.now() };
+    const key = normalizeApiKey(rawKey);
     // Secret first: a profile record must never point at a missing key.
-    await this.secrets.store(apiKeySecretKey(profile.id), normalizeApiKey(rawKey));
+    await this.secrets.store(apiKeySecretKey(profile.id), key);
+    this.keyCache.set(profile.id, key);
     await this.memento.update(PROFILES_KEY, [...profiles, profile]);
     if (profiles.length === 0) {
       await this.memento.update(ACTIVE_PROFILE_KEY, profile.id);
+      // FR4: pre-1.0 history belongs to the first profile.
+      await migrateLegacyHistory(this.memento, profile.id);
     }
     return profile;
   }
@@ -151,7 +165,10 @@ export class ProfileStore implements ActiveKeyProvider {
     if (!this.list().some((p) => p.id === id)) {
       return;
     }
-    await this.secrets.store(apiKeySecretKey(id), normalizeApiKey(rawKey));
+    const key = normalizeApiKey(rawKey);
+    this.keyCache.delete(id);
+    await this.secrets.store(apiKeySecretKey(id), key);
+    this.keyCache.set(id, key);
   }
 
   async setActive(id: string): Promise<void> {
@@ -160,7 +177,7 @@ export class ProfileStore implements ActiveKeyProvider {
     }
   }
 
-  /** Removes a profile and its key; returns the active profile afterwards. */
+  /** Removes a profile, its key and its history; returns the active profile afterwards. */
   async remove(id: string): Promise<Profile | undefined> {
     const profiles = this.list();
     const index = profiles.findIndex((p) => p.id === id);
@@ -170,8 +187,10 @@ export class ProfileStore implements ActiveKeyProvider {
     const wasActive = this.getActiveProfile()?.id === id;
     const remaining = profiles.filter((p) => p.id !== id);
 
+    this.keyCache.delete(id);
     await this.secrets.delete(apiKeySecretKey(id));
     await this.memento.update(PROFILES_KEY, remaining);
+    await deleteHistory(this.memento, id);
 
     if (wasActive) {
       const next = remaining[index] ?? remaining[index - 1];
@@ -180,11 +199,14 @@ export class ProfileStore implements ActiveKeyProvider {
     return this.getActiveProfile();
   }
 
+  /** Removes every profile, key and history. */
   async removeAll(): Promise<void> {
     const profiles = this.list();
+    this.keyCache.clear();
     await Promise.all(profiles.map((p) => this.secrets.delete(apiKeySecretKey(p.id))));
     await this.memento.update(PROFILES_KEY, undefined);
     await this.memento.update(ACTIVE_PROFILE_KEY, undefined);
+    await deleteAllHistory(this.memento);
   }
 
   async getKeyHint(id: string): Promise<string> {

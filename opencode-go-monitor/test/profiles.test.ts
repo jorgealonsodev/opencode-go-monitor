@@ -14,6 +14,7 @@ import {
   apiKeySecretKey,
   type Profile,
 } from '../src/storage/profiles';
+import { LEGACY_HISTORY_KEY, historyKey } from '../src/storage/history';
 import { createMemento, createSecrets } from './fakes';
 
 const KEY_A = 'sk-test-aaaaaaaaaaaa1111';
@@ -254,11 +255,49 @@ describe('ProfileStore', () => {
     expect(store.getActiveProfile()?.id).toBe('id-1');
   });
 
-  it('returns null when the active profile has no stored secret', async () => {
+  it('returns null when the active profile key has never been readable', async () => {
     await store.add('A', KEY_A);
     secrets.data.clear();
+    // A fresh store (e.g. another window) has never read this key.
+    const fresh = new ProfileStore(memento, secrets);
 
-    expect(await store.getActive()).toBeNull();
+    expect(await fresh.getActive()).toBeNull();
+  });
+
+  describe('key cache (transient SecretStorage misses)', () => {
+    it('keeps the last key read when SecretStorage transiently returns undefined', async () => {
+      await store.add('A', KEY_A);
+      const fresh = new ProfileStore(memento, secrets);
+      expect(await fresh.getActive()).toEqual({ id: 'id-1', name: 'A', key: KEY_A });
+
+      vi.mocked(secrets.get).mockResolvedValueOnce(undefined);
+      expect(await fresh.getActive()).toEqual({ id: 'id-1', name: 'A', key: KEY_A });
+    });
+
+    it('uses the key cached on add', async () => {
+      await store.add('A', KEY_A);
+      vi.mocked(secrets.get).mockResolvedValueOnce(undefined);
+      expect(await store.getActive()).toEqual({ id: 'id-1', name: 'A', key: KEY_A });
+    });
+
+    it('uses the replaced key, never the old cached one', async () => {
+      await store.add('A', KEY_A);
+      await store.replaceKey('id-1', KEY_B);
+      vi.mocked(secrets.get).mockResolvedValueOnce(undefined);
+      expect((await store.getActive())?.key).toBe(KEY_B);
+    });
+
+    it('forgets cached keys on remove and remove all', async () => {
+      await store.add('A', KEY_A);
+      await store.remove('id-1');
+      await memento.update(PROFILES_KEY, [profile('id-1', 'A')]);
+      expect(await store.getActive()).toBeNull();
+
+      await store.add('B', KEY_B);
+      await store.removeAll();
+      await memento.update(PROFILES_KEY, [profile('id-2', 'B')]);
+      expect(await store.getActive()).toBeNull();
+    });
   });
 
   it('reads the key hint on demand', async () => {
@@ -267,11 +306,47 @@ describe('ProfileStore', () => {
     expect(await store.getKeyHint('missing')).toBe('…');
   });
 
-  it('leaves the legacy history key untouched', async () => {
-    await memento.update('opencodeGoQuota.history', [{ timestamp: 1 }]);
-    await store.add('A', KEY_A);
-    await store.removeAll();
-    expect(memento.data.get('opencodeGoQuota.history')).toEqual([{ timestamp: 1 }]);
+  describe('history (FR4)', () => {
+    const legacy = [
+      { timestamp: 1, source: 'scraping', rolling: {}, weekly: {}, monthly: {} },
+      { timestamp: 2, source: 'api', rolling: {}, weekly: {}, monthly: {} },
+    ];
+
+    it('moves the legacy history to the first profile when it is created (AC10)', async () => {
+      await memento.update(LEGACY_HISTORY_KEY, legacy);
+      await store.add('A', KEY_A);
+
+      expect(memento.data.has(LEGACY_HISTORY_KEY)).toBe(false);
+      const moved = memento.data.get(historyKey('id-1')) as Array<Record<string, unknown>>;
+      expect(moved).toHaveLength(2);
+      expect(moved.every((e) => e.profileId === 'id-1' && !('source' in e))).toBe(true);
+
+      await store.add('B', KEY_B);
+      expect(memento.data.has(historyKey('id-2'))).toBe(false);
+    });
+
+    it('removing a profile deletes only its history', async () => {
+      await store.add('A', KEY_A);
+      await store.add('B', KEY_B);
+      await memento.update(historyKey('id-1'), [{ timestamp: 1 }]);
+      await memento.update(historyKey('id-2'), [{ timestamp: 2 }]);
+
+      await store.remove('id-1');
+
+      expect(memento.data.has(historyKey('id-1'))).toBe(false);
+      expect(memento.data.get(historyKey('id-2'))).toEqual([{ timestamp: 2 }]);
+    });
+
+    it('removing all profiles deletes every profile history', async () => {
+      await memento.update(LEGACY_HISTORY_KEY, legacy);
+      await store.add('A', KEY_A);
+      await store.add('B', KEY_B);
+      await memento.update(historyKey('id-2'), [{ timestamp: 2 }]);
+
+      await store.removeAll();
+
+      expect(Array.from(memento.data.keys()).filter((k) => k.startsWith(LEGACY_HISTORY_KEY))).toEqual([]);
+    });
   });
 });
 
