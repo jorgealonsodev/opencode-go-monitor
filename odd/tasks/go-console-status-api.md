@@ -20,6 +20,11 @@ Restore quota monitoring after OpenCode moved the Go usage page to a client-rend
 ## Tasks
 - [x] T1 — Implement new status API fetch, selector switch, dashboard URL, prompts, tests, changelog (route: delegated writer; trigger: 2+ non-trivial files)
 
+- [ ] T2 — Switch to `GET https://opencode.ai/zen/go/v1/usage` with Go API key (Bearer); replace cookie+workspace credentials with API key in SecretStorage; update configure/clear commands, tests, README, CHANGELOG 0.1.5 (route: delegated writer; trigger: 2+ non-trivial files)
+
+## Rationale T2
+Console endpoint returned HTTP 401 with stored cookie (sessions expire). The API-key endpoint was verified live on 2026-10-11: HTTP 200, `{usage:{rolling|weekly|monthly:{status,percent,resetsAt}}}`; status may be `rate-limited`. Undocumented officially; used by opencode-quota and openbot.
+
 ## Checks
 - `npx vitest run`, `npx tsc --noEmit`
 
