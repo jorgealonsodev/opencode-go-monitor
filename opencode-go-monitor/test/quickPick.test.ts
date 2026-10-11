@@ -62,7 +62,7 @@ function makeSnapshot(timestamp: number): QuotaSnapshot {
     rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
     weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
     monthly: { status: 'ok', usagePercent: 30, resetsInSeconds: 2592000 },
-    source: 'api',
+    profileId: 'default',
   };
 }
 
@@ -156,7 +156,7 @@ describe('showHistoryQuickPick', () => {
         rolling: { status: 'ok', usagePercent: 15, resetsInSeconds: 3600 },
         weekly: { status: 'ok', usagePercent: 55, resetsInSeconds: 86400 },
         monthly: { status: 'ok', usagePercent: 35, resetsInSeconds: 2592000 },
-        source: 'api',
+        profileId: 'default',
       },
     ];
 

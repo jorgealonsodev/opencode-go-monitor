@@ -4,7 +4,7 @@ import type { CreateQuickPick } from '../ui/quickPick';
 import { showDetailQuickPick } from '../ui/quickPick';
 import { predictExhaustion } from '../domain/prediction';
 import type { CommandsLike, WindowLike, DisposableLike } from './types';
-import type { FetcherSelector } from '../fetchers/FetcherSelector';
+import type { QuotaFetcher } from '../domain/types';
 import type { Translations } from '../i18n';
 
 type DisplayWindow = 'rolling' | 'weekly' | 'monthly';
@@ -15,7 +15,7 @@ export function registerShowDetailsCommand(
   createQuickPick: CreateQuickPick,
   window: WindowLike,
   commands: CommandsLike,
-  fetcherSelector?: FetcherSelector,
+  fetcher?: QuotaFetcher,
   displayWindow: DisplayWindow = 'rolling',
   t?: Translations,
 ): DisposableLike {
@@ -23,10 +23,10 @@ export function registerShowDetailsCommand(
     let history = historyStorage.getAll();
     
     // If no history, try to fetch once before showing error
-    if (history.length === 0 && fetcherSelector) {
+    if (history.length === 0 && fetcher) {
       statusBarManager.setState('loading');
       try {
-        const snapshot = await fetcherSelector.fetch();
+        const snapshot = await fetcher.fetch();
         await historyStorage.append(snapshot);
         history = historyStorage.getAll();
         statusBarManager.update(snapshot, { warning: 80, error: 95 }, displayWindow);

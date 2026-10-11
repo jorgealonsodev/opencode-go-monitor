@@ -27,7 +27,7 @@ function makeSnapshot(usagePercent: number): QuotaSnapshot {
     rolling: { status: 'ok', usagePercent, resetsInSeconds: 3600 },
     weekly: { status: 'ok', usagePercent, resetsInSeconds: 86400 },
     monthly: { status: 'ok', usagePercent, resetsInSeconds: 2592000 },
-    source: 'api',
+    profileId: 'default',
   };
 }
 
@@ -40,7 +40,6 @@ function createMockTranslations(): Translations {
     statusBarMonthly: 'Monthly',
     statusBarReset: (time) => `resets in ${time}`,
     statusBarWorkspace: (id) => `Workspace: ${id}`,
-    statusBarSource: (source) => `Source: ${source}`,
     statusBarUpdated: (time) => `Updated: ${time}`,
     stateSetup: '$(gear) OC Go: setup',
     stateLoading: '$(loading~spin) OC Go: loading...',
@@ -126,7 +125,7 @@ describe('StatusBarManager', () => {
         rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
         weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
         monthly: { status: 'ok', usagePercent: 30, resetsInSeconds: 2592000 },
-        source: 'api',
+        profileId: 'default',
       };
 
       manager.update(snapshot, { warning: 80, error: 95 });
@@ -155,7 +154,7 @@ describe('StatusBarManager', () => {
 
       const tooltip = item.tooltip as string;
       expect(tooltip).toContain('Workspace: workspace-abc123');
-      expect(tooltip).toContain('Workspace: workspace-abc123 | Source: api');
+      expect(tooltip).toContain('Workspace: workspace-abc123 | Updated: ');
     });
 
     it('omits the workspace from the tooltip footer when not set', () => {

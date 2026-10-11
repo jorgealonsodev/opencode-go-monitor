@@ -7,9 +7,9 @@ import { registerOpenDashboardCommand } from '../src/commands/openDashboard';
 import { registerClearCredentialsCommand } from '../src/commands/clearCredentials';
 import type { CredentialsStorage } from '../src/storage/credentials';
 import type { HistoryStorage } from '../src/storage/history';
-import type { FetcherSelector } from '../src/fetchers/FetcherSelector';
 import type { StatusBarManager } from '../src/ui/statusBar';
-import type { QuotaSnapshot } from '../src/domain/types';
+import type { QuotaFetcher, QuotaSnapshot } from '../src/domain/types';
+import { AuthError } from '../src/domain/errors';
 import type { QuickPickItem, QuickPick, CreateQuickPick } from '../src/ui/quickPick';
 import type {
   DisposableLike,
@@ -89,17 +89,14 @@ function createMockHistoryStorage(snapshots: QuotaSnapshot[] = []): HistoryStora
   } as unknown as HistoryStorage;
 }
 
-function createMockFetcherSelector(snapshot?: QuotaSnapshot): FetcherSelector {
+function createMockFetcher(snapshot?: QuotaSnapshot): QuotaFetcher {
   return {
     fetch: vi.fn(async () => {
       if (!snapshot) throw new Error('fetch failed');
       return snapshot;
     }),
     isAvailable: vi.fn(async () => true),
-    getBackoffDelay: vi.fn(() => 0),
-    recordSuccess: vi.fn(),
-    recordFailure: vi.fn(),
-  } as unknown as FetcherSelector;
+  };
 }
 
 function createMockStatusBarManager(): StatusBarManager {
@@ -156,7 +153,7 @@ function makeSnapshot(timestamp: number): QuotaSnapshot {
     rolling: { status: 'ok', usagePercent: 10, resetsInSeconds: 3600 },
     weekly: { status: 'ok', usagePercent: 50, resetsInSeconds: 86400 },
     monthly: { status: 'ok', usagePercent: 30, resetsInSeconds: 2592000 },
-    source: 'api',
+    profileId: 'default',
   };
 }
 
@@ -262,7 +259,7 @@ describe('registerConfigureCommand', () => {
 /* ------------------------------------------------------------------ */
 
 describe('registerRefreshCommand', () => {
-  let fetcher: FetcherSelector;
+  let fetcher: QuotaFetcher;
   let history: HistoryStorage;
   let statusBar: StatusBarManager;
   let window: WindowLike;
@@ -275,7 +272,7 @@ describe('registerRefreshCommand', () => {
   });
 
   it('registers the correct command', () => {
-    fetcher = createMockFetcherSelector();
+    fetcher = createMockFetcher();
     history = createMockHistoryStorage();
     statusBar = createMockStatusBarManager();
     window = createMockWindow();
@@ -289,7 +286,7 @@ describe('registerRefreshCommand', () => {
 
   it('fetches, appends to history, updates status bar, and shows success', async () => {
     const snapshot = makeSnapshot(Date.now());
-    fetcher = createMockFetcherSelector(snapshot);
+    fetcher = createMockFetcher(snapshot);
     history = createMockHistoryStorage();
     statusBar = createMockStatusBarManager();
     window = createMockWindow();
@@ -305,7 +302,7 @@ describe('registerRefreshCommand', () => {
   });
 
   it('sets error state and shows notification on failure', async () => {
-    fetcher = createMockFetcherSelector(undefined);
+    fetcher = createMockFetcher(undefined);
     history = createMockHistoryStorage();
     statusBar = createMockStatusBarManager();
     window = createMockWindow();
@@ -320,9 +317,22 @@ describe('registerRefreshCommand', () => {
     );
   });
 
+  it('sets auth state and names the profile when the key is rejected', async () => {
+    fetcher = { fetch: vi.fn(async () => { throw new AuthError('default', 'Default', 401); }), isAvailable: vi.fn(async () => true) };
+    history = createMockHistoryStorage();
+    statusBar = createMockStatusBarManager();
+    window = createMockWindow();
+
+    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
+    await invoke();
+
+    expect(statusBar.setState).toHaveBeenLastCalledWith('auth');
+    expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining("'Default'"));
+  });
+
   it('uses custom thresholds when provided', async () => {
     const snapshot = makeSnapshot(Date.now());
-    fetcher = createMockFetcherSelector(snapshot);
+    fetcher = createMockFetcher(snapshot);
     history = createMockHistoryStorage();
     statusBar = createMockStatusBarManager();
     window = createMockWindow();

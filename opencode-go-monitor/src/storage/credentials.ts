@@ -1,3 +1,5 @@
+import type { ActiveKey, ActiveKeyProvider } from '../domain/types';
+
 export interface SecretStorageLike {
   get(key: string): Thenable<string | undefined>;
   store(key: string, value: string): Thenable<void>;
@@ -81,5 +83,17 @@ export class CredentialsStorage {
   maskCookie(cookie: string): string {
     // SECURITY: Never reveal any part of the auth cookie in debug output
     return `[${cookie.length} chars]`;
+  }
+}
+
+// TEMPORARY (T2a): replaced by ProfileStore in T2b.
+// Exposes the stored auth value as the single API key so the usage fetcher
+// can run before named profiles exist.
+export class CredentialsKeyProvider implements ActiveKeyProvider {
+  constructor(private readonly credentials: CredentialsStorage) {}
+
+  async getActive(): Promise<ActiveKey | null> {
+    const creds = await this.credentials.getCredentials();
+    return creds ? { id: 'default', name: 'Default', key: creds.authCookie } : null;
   }
 }

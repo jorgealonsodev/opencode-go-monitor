@@ -85,7 +85,6 @@ export class StatusBarManager {
       `---`,
       [
         this._workspaceId ? this.t.statusBarWorkspace(this._workspaceId) : undefined,
-        this.t.statusBarSource(snapshot.source),
         this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString()),
       ]
         .filter(Boolean)

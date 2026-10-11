@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { CredentialsStorage, HistoryStorage } from './storage';
-import { ScrapingFetcher, ApiFetcher, FetcherSelector } from './fetchers';
+import { CredentialsStorage, CredentialsKeyProvider, HistoryStorage } from './storage';
+import { UsageFetcher } from './fetchers';
 import { StatusBarManager } from './ui';
 import {
   registerConfigureCommand,
@@ -11,7 +11,7 @@ import {
   registerClearCredentialsCommand,
   registerSelectDisplayWindowCommand,
 } from './commands';
-import { CredentialsError } from './domain/errors';
+import { AuthError, CredentialsError } from './domain/errors';
 import type { QuotaSnapshot } from './domain/types';
 import type { QuickPick, QuickPickItem } from './ui/quickPick';
 import { getTranslations, detectLocale, type Translations, type Locale } from './i18n';
@@ -138,10 +138,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
   await historyStorage.cleanup();
   outputChannel.appendLine('[init] Storage initialized');
 
-  // 2. Initialize fetchers
-  const scrapingFetcher = new ScrapingFetcher(credentialsStorage);
-  const apiFetcher = new ApiFetcher(credentialsStorage);
-  const fetcherSelector = new FetcherSelector(apiFetcher, scrapingFetcher, historyStorage);
+  // 2. Initialize fetcher
+  const fetcher = new UsageFetcher(new CredentialsKeyProvider(credentialsStorage));
 
   // 3. Initialize i18n
   const locale: Locale = detectLocale();
@@ -234,14 +232,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
     statusBarManager.setState('loading');
     try {
       outputChannel.appendLine('[fetch] === starting quota fetch ===');
-      const snapshot = await fetcherSelector.fetch();
+      const snapshot = await fetcher.fetch();
       await historyStorage.append(snapshot);
       statusBarManager.update(snapshot, thresholds, displayWindow);
       lastFetchTime = Date.now();
       pollFailureCount = 0;
       lastPollFailureTime = 0;
       lastFailureState = null;
-      outputChannel.appendLine(`[fetch] SUCCESS: source=${snapshot.source}`);
+      outputChannel.appendLine(`[fetch] SUCCESS: profile=${snapshot.profileId}`);
       outputChannel.appendLine(`[fetch] rolling=${snapshot.rolling.usagePercent}%, weekly=${snapshot.weekly.usagePercent}%, monthly=${snapshot.monthly.usagePercent}%`);
     } catch (err) {
       pollFailureCount++;
@@ -250,7 +248,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       const errorName = err instanceof Error ? err.constructor.name : 'Unknown';
       outputChannel.appendLine(`[fetch] FAILED: ${errorName}: ${errorMsg}`);
       // SECURITY: Do not log stack traces - they reveal internal file paths and structure
-      if (err instanceof CredentialsError) {
+      if (err instanceof AuthError) {
+        lastFailureState = 'auth';
+        outputChannel.appendLine(`[fetch] -> setting state: auth (HTTP ${err.httpStatus})`);
+        statusBarManager.setState('auth');
+      } else if (err instanceof CredentialsError) {
         lastFailureState = 'auth';
         outputChannel.appendLine('[fetch] -> setting state: auth (credentials missing or invalid)');
         statusBarManager.setState('auth');
@@ -301,7 +303,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
 
   registered.push(
     registerRefreshCommand(
-      fetcherSelector,
+      fetcher,
       historyStorage,
       statusBarManager,
       vscode.window,
@@ -319,7 +321,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<vscode
       createQuickPickAdapter,
       vscode.window,
       vscode.commands,
-      fetcherSelector,
+      fetcher,
       displayWindow,
       t
     )

@@ -9,7 +9,6 @@ export interface Translations {
   statusBarMonthly: string;
   statusBarReset: (time: string) => string;
   statusBarWorkspace: (id: string) => string;
-  statusBarSource: (source: string) => string;
   statusBarUpdated: (time: string) => string;
   
   // States
@@ -83,7 +82,6 @@ const en: Translations = {
   statusBarMonthly: 'Monthly',
   statusBarReset: (time) => `resets in ${time}`,
   statusBarWorkspace: (id) => `Workspace: ${id}`,
-  statusBarSource: (source) => `Source: ${source === 'api' ? 'API' : 'Web'}`,
   statusBarUpdated: (time) => `Updated: ${time}`,
   
   // States
@@ -157,7 +155,6 @@ const es: Translations = {
   statusBarMonthly: 'Mensual',
   statusBarReset: (time) => `reset en ${time}`,
   statusBarWorkspace: (id) => `Workspace: ${id}`,
-  statusBarSource: (source) => `Fuente: ${source === 'api' ? 'API' : 'Web'}`,
   statusBarUpdated: (time) => `Actualizado: ${time}`,
   
   // States
