@@ -56,3 +56,8 @@ Console endpoint returned HTTP 401 with stored cookie (sessions expire). The API
   - R3-remove-history-promise — Remove/Remove All copy promises history deletion that T2b doesn't perform (T2c implements it).
   - R3-initial-snapshot-trailing — initial snapshot from validation does not cancel a pending trailing debounce fetch.
 - Reviewed boundary advances to `62d5e3e`.
+
+### Review — T2c (`6c64b17`)
+- RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-820a281e59daf443).
+- Advisory (non-blocking): R3-migration-interrupt-duplicates — `migrateLegacyHistory` writes the per-profile key before deleting the legacy key; an interruption between both re-merges legacy entries on next activation (duplicates). Folded into T2d (dedupe by timestamp on merge).
+- Reviewed boundary advances to `6c64b17`.
