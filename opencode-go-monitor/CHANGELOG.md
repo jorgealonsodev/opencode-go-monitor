@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Quota data could no longer be read after OpenCode moved the Go usage page to a client-rendered console (`https://opencode.ai/console/<workspace-id>/go`). Usage is now fetched from the console status API (`GET https://opencode.ai/console/api/go/status`) using the `auth` cookie and the workspace ID as `x-org-id`; the 5-hour, weekly and monthly meters map to the rolling, weekly and monthly windows.
+
+### Changed
+- "Open Dashboard" now opens `https://opencode.ai/console/<workspace-id>/go`.
+- Credential prompts now point to the console URL (`/console/wrk_...`) for the workspace ID and to the `opencode.ai` cookies for the auth cookie.
+
 ## [0.1.4] - 2026-09-01
 
 ### Fixed

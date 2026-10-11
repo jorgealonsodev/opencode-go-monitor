@@ -1,5 +1,4 @@
 import type { QuotaFetcher, QuotaSnapshot } from '../domain/types';
-import { NetworkError } from '../domain/errors';
 import type { ApiFetcher } from './ApiFetcher';
 import type { ScrapingFetcher } from './ScrapingFetcher';
 import type { HistoryStorage } from '../storage/history';
@@ -25,51 +24,14 @@ export class FetcherSelector implements QuotaFetcher {
 
   async fetch(): Promise<QuotaSnapshot> {
     debug('[FetcherSelector] === fetch started ===');
-    
-    // TODO: Re-enable API fetcher when endpoint is stable and returns JSON
-    // For now, force scraping strategy to avoid API errors and unnecessary credential checks
-    debug('[FetcherSelector] API fetcher disabled. Using scraping strategy.');
-    return this.scrapingFetcher.fetch();
-
-    /* 
-    const cached = await this.historyStorage.getCachedStrategy();
-    debug(`[FetcherSelector] cached strategy: ${cached?.strategy ?? 'none'}`);
-
-    if (cached?.strategy === 'scraping') {
-      debug('[FetcherSelector] using cached scraping strategy');
-      return this.scrapingFetcher.fetch();
-    }
-
-    // Cached 'api' or no cache (auto-detect)
-    debug('[FetcherSelector] trying API fetcher...');
-    try {
-      const snapshot = await this.apiFetcher.fetch();
-      this.recordSuccess();
-      if (!cached || cached.strategy !== 'api') {
-        debug('[FetcherSelector] API success, caching strategy=api');
-        await this.historyStorage.setCachedStrategy('api');
-      }
-      return snapshot;
-    } catch (err) {
-      const isNotFound = err instanceof NetworkError && (err.status === 404 || err.status === 501);
-      debug(`[FetcherSelector] API failed: ${err instanceof Error ? err.message : String(err)} (isNotFound: ${isNotFound})`);
-      
-      this.recordFailure();
-      
-      if (isNotFound) {
-        debug('[FetcherSelector] API not available, switching to scraping');
-        await this.historyStorage.setCachedStrategy('scraping');
-      }
-
-      // Fallback to scraping
-      debug('[FetcherSelector] falling back to scraping fetcher...');
-      return this.scrapingFetcher.fetch();
-    }
-    */
+    // The console status JSON API is the only supported strategy. The SSR
+    // scraping strategy stopped working when the Go page became a client-rendered SPA.
+    debug('[FetcherSelector] using API strategy (console status endpoint)');
+    return this.apiFetcher.fetch();
   }
 
   async isAvailable(): Promise<boolean> {
-    return this.scrapingFetcher.isAvailable();
+    return this.apiFetcher.isAvailable();
   }
 
   getBackoffDelay(): number {

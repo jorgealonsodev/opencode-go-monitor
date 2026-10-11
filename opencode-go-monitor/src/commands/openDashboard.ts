@@ -9,7 +9,7 @@ export function registerOpenDashboardCommand(
   },
 ): DisposableLike {
   return commands.registerCommand('opencodeGoQuota.openDashboard', async () => {
-    const url = `https://opencode.ai/workspace/${workspaceId}/go`;
+    const url = `https://opencode.ai/console/${workspaceId}/go`;
     await env.openExternal(uriFactory.parse(url));
   });
 }

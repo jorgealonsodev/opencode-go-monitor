@@ -116,9 +116,9 @@ const en: Translations = {
   msgCredentialsCleared: 'OpenCode Go credentials cleared.',
   
   // Configure prompts
-  promptWorkspaceId: 'Enter your OpenCode workspace ID (found in your dashboard URL after /workspace/)',
-  promptWorkspaceIdPlaceholder: 'e.g., workspace-abc123',
-  promptAuthCookie: 'Enter your OpenCode auth cookie (open browser DevTools → Application → Cookies → console.opencode.ai → copy the value)',
+  promptWorkspaceId: 'Enter your OpenCode workspace ID (found in the console URL after /console/, e.g. wrk_...)',
+  promptWorkspaceIdPlaceholder: 'e.g., wrk_abc123',
+  promptAuthCookie: 'Enter your OpenCode auth cookie (open browser DevTools → Application → Cookies → opencode.ai → copy the value of "auth")',
   promptAuthCookiePlaceholder: 'Paste your auth cookie here',
   
   // Display window picker
@@ -190,9 +190,9 @@ const es: Translations = {
   msgCredentialsCleared: 'Credenciales de OpenCode Go eliminadas.',
   
   // Configure prompts
-  promptWorkspaceId: 'Introduce tu workspace ID de OpenCode (encontrado en la URL del dashboard después de /workspace/)',
-  promptWorkspaceIdPlaceholder: 'ej., workspace-abc123',
-  promptAuthCookie: 'Introduce tu auth cookie de OpenCode (abre DevTools del navegador → Application → Cookies → console.opencode.ai → copia el valor)',
+  promptWorkspaceId: 'Introduce el ID de workspace de OpenCode (aparece en la URL de la consola después de /console/, p. ej. wrk_...)',
+  promptWorkspaceIdPlaceholder: 'ej., wrk_abc123',
+  promptAuthCookie: 'Introduce la cookie de autenticación de OpenCode (abre DevTools del navegador → Application → Cookies → opencode.ai → copia el valor de "auth")',
   promptAuthCookiePlaceholder: 'Pega tu auth cookie aquí',
   
   // Display window picker

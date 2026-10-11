@@ -521,7 +521,7 @@ describe('registerOpenDashboardCommand', () => {
       }),
     );
     const callArg = (env.openExternal as ReturnType<typeof vi.fn>).mock.calls[0][0] as UriLike;
-    expect(callArg.toString()).toBe('https://opencode.ai/workspace/ws-123/go');
+    expect(callArg.toString()).toBe('https://opencode.ai/console/ws-123/go');
   });
 });
 
