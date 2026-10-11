@@ -64,3 +64,8 @@ Console endpoint returned HTTP 401 with stored cookie (sessions expire). The API
 - RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-820a281e59daf443).
 - Advisory (non-blocking): R3-migration-interrupt-duplicates — `migrateLegacyHistory` writes the per-profile key before deleting the legacy key; an interruption between both re-merges legacy entries on next activation (duplicates). Folded into T2d (dedupe by timestamp on merge).
 - Reviewed boundary advances to `6c64b17`.
+
+### Review — T2d (`56cfd58`)
+- RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-f8031725c0de5700).
+- Advisories R3-limit-color-unenforced and R3-auth-tooltip-empty-name fixed inline in `9476dd4` (test-first: 2 RED → GREEN; 226/226 tests).
+- Known, not fixed (pre-existing / minor): `opencodeGoQuota.debug` setting is documented but unread; renaming the active key updates the status bar only on next refresh.
