@@ -19,8 +19,11 @@ export interface WindowLike {
     password?: boolean;
     placeHolder?: string;
     ignoreFocusOut?: boolean;
+    value?: string;
+    validateInput?: (value: string) => string | undefined;
   }): Thenable<string | undefined>;
   showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined>;
+  showWarningMessage(message: string, options: { modal?: boolean }, ...items: string[]): Thenable<string | undefined>;
   showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined>;
   showSaveDialog(options?: {
     defaultUri?: UriLike;

@@ -1,15 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerConfigureCommand } from '../src/commands/configure';
-import { registerRefreshCommand } from '../src/commands/refresh';
+import { registerRefreshCommand, notifyAuthRejected, notifyRefreshFailed } from '../src/commands/refresh';
 import { registerShowDetailsCommand } from '../src/commands/showDetails';
 import { registerExportHistoryCommand } from '../src/commands/exportHistory';
 import { registerOpenDashboardCommand } from '../src/commands/openDashboard';
-import { registerClearCredentialsCommand } from '../src/commands/clearCredentials';
-import type { CredentialsStorage } from '../src/storage/credentials';
 import type { HistoryStorage } from '../src/storage/history';
 import type { StatusBarManager } from '../src/ui/statusBar';
 import type { QuotaFetcher, QuotaSnapshot } from '../src/domain/types';
-import { AuthError } from '../src/domain/errors';
+import { AuthError, CredentialsError, NetworkError } from '../src/domain/errors';
 import type { QuickPickItem, QuickPick, CreateQuickPick } from '../src/ui/quickPick';
 import type {
   DisposableLike,
@@ -30,6 +27,7 @@ function createMockWindow(): WindowLike {
   return {
     showInputBox: vi.fn(),
     showInformationMessage: vi.fn(),
+    showWarningMessage: vi.fn(),
     showErrorMessage: vi.fn(),
     showSaveDialog: vi.fn(),
     showQuickPick: vi.fn(),
@@ -64,16 +62,6 @@ function createMockEnv(): EnvLike {
   return {
     openExternal: vi.fn(),
   };
-}
-
-function createMockCredentialsStorage(): CredentialsStorage {
-  return {
-    saveCredentials: vi.fn(),
-    getCredentials: vi.fn(),
-    clearCredentials: vi.fn(),
-    hasCredentials: vi.fn(),
-    maskCookie: vi.fn((c: string) => c),
-  } as unknown as CredentialsStorage;
 }
 
 function createMockHistoryStorage(snapshots: QuotaSnapshot[] = []): HistoryStorage {
@@ -158,192 +146,86 @@ function makeSnapshot(timestamp: number): QuotaSnapshot {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Configure command                                                 */
-/* ------------------------------------------------------------------ */
-
-describe('registerConfigureCommand', () => {
-  let credentials: CredentialsStorage;
-  let window: WindowLike;
-  let { commands, invoke, getRegisteredCommand } = createMockCommands();
-
-  beforeEach(() => {
-    credentials = createMockCredentialsStorage();
-    window = createMockWindow();
-    const mocks = createMockCommands();
-    commands = mocks.commands;
-    invoke = mocks.invoke;
-    getRegisteredCommand = mocks.getRegisteredCommand;
-  });
-
-  it('registers the correct command', () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    expect(getRegisteredCommand()).toBe('opencodeGoQuota.configure');
-  });
-
-  it('saves credentials when both inputs are provided', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce('ws-123')
-      .mockResolvedValueOnce('cookie-abc');
-
-    await invoke();
-
-    expect(credentials.saveCredentials).toHaveBeenCalledWith('cookie-abc', 'ws-123');
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      expect.stringContaining('OpenCode Go credentials saved'),
-    );
-  });
-
-  it('shows error when workspaceId is empty', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce('   ')
-      .mockResolvedValueOnce('cookie-abc');
-
-    await invoke();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      'Both workspace ID and auth cookie are required.',
-    );
-    expect(credentials.saveCredentials).not.toHaveBeenCalled();
-  });
-
-  it('shows error when authCookie is empty', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce('ws-123')
-      .mockResolvedValueOnce('   ');
-
-    await invoke();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      'Both workspace ID and auth cookie are required.',
-    );
-    expect(credentials.saveCredentials).not.toHaveBeenCalled();
-  });
-
-  it('does nothing when user cancels workspaceId prompt', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
-
-    await invoke();
-
-    expect(credentials.saveCredentials).not.toHaveBeenCalled();
-    expect(window.showErrorMessage).not.toHaveBeenCalled();
-  });
-
-  it('does nothing when user cancels authCookie prompt', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>)
-      .mockResolvedValueOnce('ws-123')
-      .mockResolvedValueOnce(undefined);
-
-    await invoke();
-
-    expect(credentials.saveCredentials).not.toHaveBeenCalled();
-    expect(window.showErrorMessage).not.toHaveBeenCalled();
-  });
-
-  it('shows error notification on unexpected error', async () => {
-    registerConfigureCommand(credentials, window, commands, mockT);
-    (window.showInputBox as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'));
-
-    await invoke();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('boom'));
-  });
-});
-
-/* ------------------------------------------------------------------ */
 /*  Refresh command                                                   */
 /* ------------------------------------------------------------------ */
 
 describe('registerRefreshCommand', () => {
-  let fetcher: QuotaFetcher;
-  let history: HistoryStorage;
-  let statusBar: StatusBarManager;
-  let window: WindowLike;
-  let { commands, invoke } = createMockCommands();
+  it('delegates to the poller', async () => {
+    const { commands, invoke } = createMockCommands();
+    const poller = { refresh: vi.fn(async () => undefined) };
 
-  beforeEach(() => {
-    const mocks = createMockCommands();
-    commands = mocks.commands;
-    invoke = mocks.invoke;
-  });
+    registerRefreshCommand(poller, commands);
+    expect(commands.registerCommand).toHaveBeenCalledWith('opencodeGoQuota.refresh', expect.any(Function));
 
-  it('registers the correct command', () => {
-    fetcher = createMockFetcher();
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
-
-    registerRefreshCommand(fetcher, history, statusBar, window, commands);
-    expect(commands.registerCommand).toHaveBeenCalledWith(
-      'opencodeGoQuota.refresh',
-      expect.any(Function),
-    );
-  });
-
-  it('fetches, appends to history, updates status bar, and shows success', async () => {
-    const snapshot = makeSnapshot(Date.now());
-    fetcher = createMockFetcher(snapshot);
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
-
-    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
     await invoke();
-
-    expect(statusBar.setState).toHaveBeenCalledWith('loading');
-    expect(fetcher.fetch).toHaveBeenCalled();
-    expect(history.append).toHaveBeenCalledWith(snapshot);
-    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 80, error: 95 }, 'rolling');
-    expect(window.showInformationMessage).not.toHaveBeenCalled();
+    expect(poller.refresh).toHaveBeenCalledTimes(1);
   });
+});
 
-  it('sets error state and shows notification on failure', async () => {
-    fetcher = createMockFetcher(undefined);
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
+describe('notifyAuthRejected', () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
-    await invoke();
+  it('names the profile and offers Select / Replace API Key', async () => {
+    const window = createMockWindow();
+    const { commands } = createMockCommands();
+    (window.showErrorMessage as ReturnType<typeof vi.fn>).mockResolvedValueOnce('Replace API Key');
 
-    expect(statusBar.setState).toHaveBeenCalledWith('loading');
-    expect(statusBar.setState).toHaveBeenCalledWith('error');
+    notifyAuthRejected(new AuthError('p1', 'Team 1', 401), window, commands, mockT);
+    await flush();
+
     expect(window.showErrorMessage).toHaveBeenCalledWith(
-      expect.stringContaining('Failed to refresh quota'),
+      "API key 'Team 1' was rejected by OpenCode (HTTP 401).",
+      'Select API Key',
+      'Replace API Key',
+    );
+    expect(commands.executeCommand).toHaveBeenCalledWith('opencodeGoQuota.replaceApiKey', 'p1');
+  });
+
+  it('is translated', () => {
+    const window = createMockWindow();
+    (window.showErrorMessage as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
+    const es = getTranslations('es');
+
+    notifyAuthRejected(new AuthError('p1', 'Equipo', 403), window, createMockCommands().commands, es);
+
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      "OpenCode rechazó la clave de API 'Equipo' (HTTP 403).",
+      es.actionSelectApiKey,
+      es.actionReplaceApiKey,
     );
   });
 
-  it('sets auth state and names the profile when the key is rejected', async () => {
-    fetcher = { fetch: vi.fn(async () => { throw new AuthError('default', 'Default', 401); }), isAvailable: vi.fn(async () => true) };
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
+  it('runs Select API Key from the notification', async () => {
+    const window = createMockWindow();
+    const { commands } = createMockCommands();
+    (window.showErrorMessage as ReturnType<typeof vi.fn>).mockResolvedValueOnce('Select API Key');
 
-    registerRefreshCommand(fetcher, history, statusBar, window, commands, { warning: 80, error: 95 }, 'rolling');
-    await invoke();
+    notifyAuthRejected(new AuthError('p1', 'Team 1', 401), window, commands, mockT);
+    await flush();
 
-    expect(statusBar.setState).toHaveBeenLastCalledWith('auth');
-    expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining("'Default'"));
+    expect(commands.executeCommand).toHaveBeenCalledWith('opencodeGoQuota.selectApiKey');
+  });
+});
+
+describe('notifyRefreshFailed', () => {
+  it('shows the translated failure reason', () => {
+    const window = createMockWindow();
+    (window.showErrorMessage as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    notifyRefreshFailed(new NetworkError('offline'), window, createMockCommands().commands, mockT);
+    expect(window.showErrorMessage).toHaveBeenCalledWith('Failed to refresh quota: offline');
   });
 
-  it('uses custom thresholds when provided', async () => {
-    const snapshot = makeSnapshot(Date.now());
-    fetcher = createMockFetcher(snapshot);
-    history = createMockHistoryStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
+  it('offers Add API Key when no key is configured', () => {
+    const window = createMockWindow();
+    (window.showErrorMessage as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    notifyRefreshFailed(new CredentialsError(), window, createMockCommands().commands, mockT);
+    expect(window.showErrorMessage).toHaveBeenCalledWith('No API keys saved.', 'Add API Key');
+  });
 
-    registerRefreshCommand(fetcher, history, statusBar, window, commands, {
-      warning: 70,
-      error: 90,
-    }, 'rolling');
-    await invoke();
-
-    expect(statusBar.update).toHaveBeenCalledWith(snapshot, { warning: 70, error: 90 }, 'rolling');
+  it('stays silent for auth errors (reported once per episode elsewhere)', () => {
+    const window = createMockWindow();
+    notifyRefreshFailed(new AuthError('p1', 'X', 401), window, createMockCommands().commands, mockT);
+    expect(window.showErrorMessage).not.toHaveBeenCalled();
   });
 });
 
@@ -405,7 +287,7 @@ describe('registerShowDetailsCommand', () => {
     expect(window.showErrorMessage).toHaveBeenCalledWith(
       mockT.msgNoDataAvailable,
       mockT.msgRefreshNow,
-      mockT.msgConfigureCredentials,
+      mockT.actionAddApiKey,
     );
   });
 });
@@ -513,7 +395,7 @@ describe('registerOpenDashboardCommand', () => {
 
   it('registers the correct command', () => {
     env = createMockEnv();
-    registerOpenDashboardCommand('ws-123', env, commands);
+    registerOpenDashboardCommand(env, commands);
     expect(commands.registerCommand).toHaveBeenCalledWith(
       'opencodeGoQuota.openDashboard',
       expect.any(Function),
@@ -522,7 +404,7 @@ describe('registerOpenDashboardCommand', () => {
 
   it('opens the correct URL', async () => {
     env = createMockEnv();
-    registerOpenDashboardCommand('ws-123', env, commands);
+    registerOpenDashboardCommand(env, commands);
     await invoke();
 
     expect(env.openExternal).toHaveBeenCalledWith(
@@ -531,56 +413,6 @@ describe('registerOpenDashboardCommand', () => {
       }),
     );
     const callArg = (env.openExternal as ReturnType<typeof vi.fn>).mock.calls[0][0] as UriLike;
-    expect(callArg.toString()).toBe('https://opencode.ai/console/ws-123/go');
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  ClearCredentials command                                          */
-/* ------------------------------------------------------------------ */
-
-describe('registerClearCredentialsCommand', () => {
-  let credentials: CredentialsStorage;
-  let statusBar: StatusBarManager;
-  let window: WindowLike;
-  let { commands, invoke } = createMockCommands();
-
-  beforeEach(() => {
-    credentials = createMockCredentialsStorage();
-    statusBar = createMockStatusBarManager();
-    window = createMockWindow();
-    const mocks = createMockCommands();
-    commands = mocks.commands;
-    invoke = mocks.invoke;
-  });
-
-  it('registers the correct command', () => {
-    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
-    expect(commands.registerCommand).toHaveBeenCalledWith(
-      'opencodeGoQuota.clearCredentials',
-      expect.any(Function),
-    );
-  });
-
-  it('clears credentials, resets status bar, and shows confirmation', async () => {
-    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
-    await invoke();
-
-    expect(credentials.clearCredentials).toHaveBeenCalled();
-    expect(statusBar.setState).toHaveBeenCalledWith('setup');
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      'OpenCode Go credentials cleared.',
-    );
-  });
-
-  it('shows error on unexpected failure', async () => {
-    (credentials.clearCredentials as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('storage locked'),
-    );
-
-    registerClearCredentialsCommand(credentials, statusBar, window, commands, mockT);
-    await invoke();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('storage locked'));
+    expect(callArg.toString()).toBe('https://opencode.ai/console');
   });
 });

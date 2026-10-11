@@ -8,7 +8,6 @@ export interface Translations {
   statusBarWeekly: string;
   statusBarMonthly: string;
   statusBarReset: (time: string) => string;
-  statusBarWorkspace: (id: string) => string;
   statusBarUpdated: (time: string) => string;
   
   // States
@@ -17,34 +16,13 @@ export interface Translations {
   stateAuthExpired: string;
   stateError: string;
   
-  // Commands
-  cmdConfigureTitle: string;
-  cmdRefreshTitle: string;
-  cmdShowDetailsTitle: string;
-  cmdExportHistoryTitle: string;
-  cmdOpenDashboardTitle: string;
-  cmdClearCredentialsTitle: string;
-  cmdSelectDisplayWindowTitle: string;
-  
   // Messages
-  msgCredentialsSaved: (workspaceId: string) => string;
-  msgCredentialsRequired: string;
-  msgFailedToSave: (error: string) => string;
-  msgQuotaRefreshed: (pct: number) => string;
   msgFailedToRefresh: (error: string) => string;
   msgNoDataAvailable: string;
   msgRefreshNow: string;
-  msgConfigureCredentials: string;
   msgWindowChanged: (label: string) => string;
   msgHistoryExported: (path: string) => string;
   msgFailedToExport: (error: string) => string;
-  msgCredentialsCleared: string;
-  
-  // Configure prompts
-  promptWorkspaceId: string;
-  promptWorkspaceIdPlaceholder: string;
-  promptAuthCookie: string;
-  promptAuthCookiePlaceholder: string;
   
   // Display window picker
   pickDisplayWindowPlaceholder: string;
@@ -57,7 +35,6 @@ export interface Translations {
   pickCurrent: string;
   
   // Details quickpick
-  detailsTitle: string;
   detailsRolling: string;
   detailsWeekly: string;
   detailsMonthly: string;
@@ -67,10 +44,41 @@ export interface Translations {
   detailsReconfigure: string;
   detailsLogout: string;
   
-  // Errors
-  errCredentialsNotFound: string;
-  errParseFailed: string;
-  errNetworkFailed: string;
+  // API keys (profiles)
+  promptApiKeyName: string;
+  promptApiKeyNamePlaceholder: string;
+  promptApiKey: string;
+  promptReplaceApiKey: (name: string) => string;
+  promptRenameApiKey: (name: string) => string;
+  pickSelectApiKey: string;
+  pickRenameApiKey: string;
+  pickReplaceApiKey: string;
+  pickRemoveApiKey: string;
+  errNameRequired: string;
+  errNameTooLong: string;
+  errNameForbidden: string;
+  errNameDuplicate: (name: string) => string;
+  errKeyInvalid: string;
+  msgKeyRejected: string;
+  msgKeyUnverified: (reason: string) => string;
+  msgKeySaved: (name: string) => string;
+  msgConfirmRemove: (name: string) => string;
+  msgConfirmRemoveAll: (count: number) => string;
+  msgRemoved: (name: string) => string;
+  msgRemovedNowMonitoring: (name: string, other: string) => string;
+  msgNoApiKeys: string;
+  msgAuthRejected: (name: string, httpStatus: number) => string;
+  msgApiKeyOperationFailed: (error: string) => string;
+  msgLegacyNotice: string;
+  actionAddApiKey: string;
+  actionSelectApiKey: string;
+  actionReplaceApiKey: string;
+  actionMonitor: (name: string) => string;
+  actionTryAgain: string;
+  actionSaveAnyway: string;
+  actionCancel: string;
+  actionRemove: string;
+  actionRemoveAll: string;
 }
 
 const en: Translations = {
@@ -81,7 +89,6 @@ const en: Translations = {
   statusBarWeekly: 'Weekly',
   statusBarMonthly: 'Monthly',
   statusBarReset: (time) => `resets in ${time}`,
-  statusBarWorkspace: (id) => `Workspace: ${id}`,
   statusBarUpdated: (time) => `Updated: ${time}`,
   
   // States
@@ -90,34 +97,13 @@ const en: Translations = {
   stateAuthExpired: 'OC Go: auth expired',
   stateError: 'OC Go: error',
   
-  // Commands
-  cmdConfigureTitle: 'OpenCode Go: Configure Credentials',
-  cmdRefreshTitle: 'OpenCode Go: Refresh Quota',
-  cmdShowDetailsTitle: 'OpenCode Go: Show Details',
-  cmdExportHistoryTitle: 'OpenCode Go: Export History',
-  cmdOpenDashboardTitle: 'OpenCode Go: Open Dashboard',
-  cmdClearCredentialsTitle: 'OpenCode Go: Clear Credentials',
-  cmdSelectDisplayWindowTitle: 'OpenCode Go: Select Display Window',
-  
   // Messages
-  msgCredentialsSaved: (workspaceId) => `OpenCode Go credentials saved for workspace ${workspaceId}.`,
-  msgCredentialsRequired: 'Both workspace ID and auth cookie are required.',
-  msgFailedToSave: (error) => `Failed to save credentials: ${error}`,
-  msgQuotaRefreshed: (pct) => `Quota refreshed. Usage: ${pct}%.`,
   msgFailedToRefresh: (error) => `Failed to refresh quota: ${error}`,
   msgNoDataAvailable: 'No quota data available. Try refreshing manually.',
   msgRefreshNow: 'Refresh Now',
-  msgConfigureCredentials: 'Configure Credentials',
   msgWindowChanged: (label) => `Display window changed to: ${label}`,
   msgHistoryExported: (path) => `History exported to: ${path}`,
   msgFailedToExport: (error) => `Failed to export history: ${error}`,
-  msgCredentialsCleared: 'OpenCode Go credentials cleared.',
-  
-  // Configure prompts
-  promptWorkspaceId: 'Enter your OpenCode workspace ID (found in the console URL after /console/, e.g. wrk_...)',
-  promptWorkspaceIdPlaceholder: 'e.g., wrk_abc123',
-  promptAuthCookie: 'Enter your OpenCode auth cookie (open browser DevTools → Application → Cookies → opencode.ai → copy the value of "auth")',
-  promptAuthCookiePlaceholder: 'Paste your auth cookie here',
   
   // Display window picker
   pickDisplayWindowPlaceholder: 'Select the quota window to display in the status bar',
@@ -130,7 +116,6 @@ const en: Translations = {
   pickCurrent: '✓ Current',
   
   // Details quickpick
-  detailsTitle: 'OpenCode Go Quota Details',
   detailsRolling: 'Rolling',
   detailsWeekly: 'Weekly',
   detailsMonthly: 'Monthly',
@@ -140,10 +125,41 @@ const en: Translations = {
   detailsReconfigure: 'Reconfigure credentials',
   detailsLogout: 'Logout (Clear credentials)',
   
-  // Errors
-  errCredentialsNotFound: 'Credentials not found',
-  errParseFailed: 'Failed to parse response',
-  errNetworkFailed: 'Network request failed',
+  // API keys (profiles)
+  promptApiKeyName: 'Name for this API key',
+  promptApiKeyNamePlaceholder: 'e.g., Personal, Team 1',
+  promptApiKey: 'Paste your OpenCode Go API key',
+  promptReplaceApiKey: (name) => `Paste the new API key for '${name}'`,
+  promptRenameApiKey: (name) => `New name for '${name}'`,
+  pickSelectApiKey: 'Select the API key to monitor',
+  pickRenameApiKey: 'Select the API key to rename',
+  pickReplaceApiKey: 'Select the API key to replace',
+  pickRemoveApiKey: 'Select the API key to remove',
+  errNameRequired: 'Name is required',
+  errNameTooLong: 'Use 40 characters or fewer',
+  errNameForbidden: "Names can't contain [ ] ( ) or control characters",
+  errNameDuplicate: (name) => `A key named '${name}' already exists`,
+  errKeyInvalid: "This doesn't look like an API key",
+  msgKeyRejected: 'The key was rejected by OpenCode.',
+  msgKeyUnverified: (reason) => `Couldn't verify the key (${reason}).`,
+  msgKeySaved: (name) => `Saved '${name}'.`,
+  msgConfirmRemove: (name) => `Remove '${name}' and its stored history? This can't be undone.`,
+  msgConfirmRemoveAll: (count) => `Remove all ${count} API keys and their history?`,
+  msgRemoved: (name) => `Removed '${name}'.`,
+  msgRemovedNowMonitoring: (name, other) => `Removed '${name}'. Now monitoring '${other}'.`,
+  msgNoApiKeys: 'No API keys saved.',
+  msgAuthRejected: (name, httpStatus) => `API key '${name}' was rejected by OpenCode (HTTP ${httpStatus}).`,
+  msgApiKeyOperationFailed: (error) => `Failed to update API keys: ${error}`,
+  msgLegacyNotice: 'OpenCode Go Monitor now uses API keys. Cookie setup is no longer supported — add your Go API key to continue.',
+  actionAddApiKey: 'Add API Key',
+  actionSelectApiKey: 'Select API Key',
+  actionReplaceApiKey: 'Replace API Key',
+  actionMonitor: (name) => `Monitor ${name}`,
+  actionTryAgain: 'Try again',
+  actionSaveAnyway: 'Save anyway',
+  actionCancel: 'Cancel',
+  actionRemove: 'Remove',
+  actionRemoveAll: 'Remove all',
 };
 
 const es: Translations = {
@@ -154,7 +170,6 @@ const es: Translations = {
   statusBarWeekly: 'Semanal',
   statusBarMonthly: 'Mensual',
   statusBarReset: (time) => `reset en ${time}`,
-  statusBarWorkspace: (id) => `Workspace: ${id}`,
   statusBarUpdated: (time) => `Actualizado: ${time}`,
   
   // States
@@ -163,34 +178,13 @@ const es: Translations = {
   stateAuthExpired: 'OC Go: auth expirada',
   stateError: 'OC Go: error',
   
-  // Commands
-  cmdConfigureTitle: 'OpenCode Go: Configurar Credenciales',
-  cmdRefreshTitle: 'OpenCode Go: Actualizar Quota',
-  cmdShowDetailsTitle: 'OpenCode Go: Mostrar Detalles',
-  cmdExportHistoryTitle: 'OpenCode Go: Exportar Historial',
-  cmdOpenDashboardTitle: 'OpenCode Go: Abrir Dashboard',
-  cmdClearCredentialsTitle: 'OpenCode Go: Limpiar Credenciales',
-  cmdSelectDisplayWindowTitle: 'OpenCode Go: Seleccionar Ventana',
-  
   // Messages
-  msgCredentialsSaved: (workspaceId) => `Credenciales de OpenCode Go guardadas para el workspace ${workspaceId}.`,
-  msgCredentialsRequired: 'Se requieren tanto el workspace ID como la auth cookie.',
-  msgFailedToSave: (error) => `Error al guardar credenciales: ${error}`,
-  msgQuotaRefreshed: (pct) => `Quota actualizada. Uso: ${pct}%.`,
   msgFailedToRefresh: (error) => `Error al actualizar quota: ${error}`,
   msgNoDataAvailable: 'No hay datos de quota disponibles. Intenta actualizar manualmente.',
   msgRefreshNow: 'Actualizar Ahora',
-  msgConfigureCredentials: 'Configurar Credenciales',
   msgWindowChanged: (label) => `Ventana cambiada a: ${label}`,
   msgHistoryExported: (path) => `Historial exportado a: ${path}`,
   msgFailedToExport: (error) => `Error al exportar historial: ${error}`,
-  msgCredentialsCleared: 'Credenciales de OpenCode Go eliminadas.',
-  
-  // Configure prompts
-  promptWorkspaceId: 'Introduce el ID de workspace de OpenCode (aparece en la URL de la consola después de /console/, p. ej. wrk_...)',
-  promptWorkspaceIdPlaceholder: 'ej., wrk_abc123',
-  promptAuthCookie: 'Introduce la cookie de autenticación de OpenCode (abre DevTools del navegador → Application → Cookies → opencode.ai → copia el valor de "auth")',
-  promptAuthCookiePlaceholder: 'Pega tu auth cookie aquí',
   
   // Display window picker
   pickDisplayWindowPlaceholder: 'Selecciona la ventana de quota a mostrar en la barra de estado',
@@ -203,7 +197,6 @@ const es: Translations = {
   pickCurrent: '✓ Actual',
   
   // Details quickpick
-  detailsTitle: 'Detalles de Quota OpenCode Go',
   detailsRolling: 'Continuo',
   detailsWeekly: 'Semanal',
   detailsMonthly: 'Mensual',
@@ -213,10 +206,41 @@ const es: Translations = {
   detailsReconfigure: 'Reconfigurar credenciales',
   detailsLogout: 'Cerrar sesión (Borrar credenciales)',
   
-  // Errors
-  errCredentialsNotFound: 'Credenciales no encontradas',
-  errParseFailed: 'Error al parsear respuesta',
-  errNetworkFailed: 'Error de red',
+  // API keys (profiles)
+  promptApiKeyName: 'Nombre para esta clave de API',
+  promptApiKeyNamePlaceholder: 'p. ej., Personal, Equipo 1',
+  promptApiKey: 'Pega tu clave de API de OpenCode Go',
+  promptReplaceApiKey: (name) => `Pega la nueva clave de API para '${name}'`,
+  promptRenameApiKey: (name) => `Nuevo nombre para '${name}'`,
+  pickSelectApiKey: 'Selecciona la clave de API que quieres supervisar',
+  pickRenameApiKey: 'Selecciona la clave de API que quieres renombrar',
+  pickReplaceApiKey: 'Selecciona la clave de API que quieres reemplazar',
+  pickRemoveApiKey: 'Selecciona la clave de API que quieres eliminar',
+  errNameRequired: 'El nombre es obligatorio',
+  errNameTooLong: 'Usa 40 caracteres o menos',
+  errNameForbidden: 'Los nombres no pueden contener [ ] ( ) ni caracteres de control',
+  errNameDuplicate: (name) => `Ya existe una clave llamada '${name}'`,
+  errKeyInvalid: 'Esto no parece una clave de API',
+  msgKeyRejected: 'OpenCode rechazó la clave.',
+  msgKeyUnverified: (reason) => `No se pudo verificar la clave (${reason}).`,
+  msgKeySaved: (name) => `Se guardó '${name}'.`,
+  msgConfirmRemove: (name) => `¿Eliminar '${name}' y su historial guardado? Esta acción no se puede deshacer.`,
+  msgConfirmRemoveAll: (count) => `¿Eliminar las ${count} claves de API y su historial?`,
+  msgRemoved: (name) => `Se eliminó '${name}'.`,
+  msgRemovedNowMonitoring: (name, other) => `Se eliminó '${name}'. Ahora se supervisa '${other}'.`,
+  msgNoApiKeys: 'No hay claves de API guardadas.',
+  msgAuthRejected: (name, httpStatus) => `OpenCode rechazó la clave de API '${name}' (HTTP ${httpStatus}).`,
+  msgApiKeyOperationFailed: (error) => `Error al actualizar las claves de API: ${error}`,
+  msgLegacyNotice: 'OpenCode Go Monitor ahora usa claves de API. La configuración con cookies ya no es compatible: añade tu clave de API de Go para continuar.',
+  actionAddApiKey: 'Añadir clave de API',
+  actionSelectApiKey: 'Seleccionar clave de API',
+  actionReplaceApiKey: 'Reemplazar clave de API',
+  actionMonitor: (name) => `Supervisar ${name}`,
+  actionTryAgain: 'Reintentar',
+  actionSaveAnyway: 'Guardar de todos modos',
+  actionCancel: 'Cancelar',
+  actionRemove: 'Eliminar',
+  actionRemoveAll: 'Eliminar todas',
 };
 
 export function getTranslations(locale: Locale): Translations {

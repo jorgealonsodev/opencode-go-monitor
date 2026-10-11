@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { StatusBarManager, type StatusBarItem, type StatusBarItemFactory } from '../src/ui/statusBar';
+import { StatusBarManager, singleClickCommand, type StatusBarItem, type StatusBarItemFactory } from '../src/ui/statusBar';
 import type { QuotaSnapshot } from '../src/domain/types';
-import type { Translations } from '../src/i18n';
+import { getTranslations, type Translations } from '../src/i18n';
 
 function createMockItem(): StatusBarItem {
   return {
@@ -33,61 +33,13 @@ function makeSnapshot(usagePercent: number): QuotaSnapshot {
 
 function createMockTranslations(): Translations {
   return {
+    ...getTranslations('en'),
     statusBarTooltip: () => 'OpenCode Go',
     statusBarText: () => '$(graph) OC Go: 50% · 1d 0h',
-    statusBarRolling: 'Rolling',
-    statusBarWeekly: 'Weekly',
-    statusBarMonthly: 'Monthly',
-    statusBarReset: (time) => `resets in ${time}`,
-    statusBarWorkspace: (id) => `Workspace: ${id}`,
-    statusBarUpdated: (time) => `Updated: ${time}`,
     stateSetup: '$(gear) OC Go: setup',
     stateLoading: '$(loading~spin) OC Go: loading...',
     stateAuthExpired: '$(warning) OC Go: auth expired',
     stateError: '$(warning) OC Go: error',
-    cmdConfigureTitle: '',
-    cmdRefreshTitle: '',
-    cmdShowDetailsTitle: '',
-    cmdExportHistoryTitle: '',
-    cmdOpenDashboardTitle: '',
-    cmdClearCredentialsTitle: '',
-    cmdSelectDisplayWindowTitle: '',
-    msgCredentialsSaved: () => '',
-    msgCredentialsRequired: '',
-    msgFailedToSave: () => '',
-    msgQuotaRefreshed: () => '',
-    msgFailedToRefresh: () => '',
-    msgNoDataAvailable: '',
-    msgRefreshNow: '',
-    msgConfigureCredentials: '',
-    msgWindowChanged: () => '',
-    msgHistoryExported: () => '',
-    msgFailedToExport: () => '',
-    msgCredentialsCleared: '',
-    promptWorkspaceId: '',
-    promptWorkspaceIdPlaceholder: '',
-    promptAuthCookie: '',
-    promptAuthCookiePlaceholder: '',
-    pickDisplayWindowPlaceholder: '',
-    pickRollingLabel: '',
-    pickRollingDesc: '',
-    pickWeeklyLabel: '',
-    pickWeeklyDesc: '',
-    pickMonthlyLabel: '',
-    pickMonthlyDesc: '',
-    pickCurrent: '',
-    detailsTitle: '',
-    detailsRolling: '',
-    detailsWeekly: '',
-    detailsMonthly: '',
-    detailsPrediction: () => '',
-    detailsNoPrediction: '',
-    detailsHistoryCount: () => '',
-    detailsReconfigure: '',
-    detailsLogout: '',
-    errCredentialsNotFound: '',
-    errParseFailed: '',
-    errNetworkFailed: '',
   };
 }
 
@@ -145,25 +97,14 @@ describe('StatusBarManager', () => {
       expect(item.backgroundColor).toBeUndefined();
     });
 
-    it('shows the workspace in the tooltip footer when set', () => {
-      const { factory, item } = createMockFactory();
-      const manager = new StatusBarManager(factory, createMockTranslations());
-      manager.create();
-      manager.setWorkspaceId('workspace-abc123');
-      manager.update(makeSnapshot(50), { warning: 80, error: 95 });
-
-      const tooltip = item.tooltip as string;
-      expect(tooltip).toContain('Workspace: workspace-abc123');
-      expect(tooltip).toContain('Workspace: workspace-abc123 | Updated: ');
-    });
-
-    it('omits the workspace from the tooltip footer when not set', () => {
+    it('has no workspace or source lines in the tooltip', () => {
       const { factory, item } = createMockFactory();
       const manager = new StatusBarManager(factory, createMockTranslations());
       manager.create();
       manager.update(makeSnapshot(50), { warning: 80, error: 95 });
 
-      expect(item.tooltip as string).not.toContain('Workspace:');
+      expect(item.tooltip as string).not.toContain('Workspace');
+      expect(item.tooltip as string).toContain('Updated: ');
     });
 
     it('sets warning color when at warning threshold', () => {
@@ -289,6 +230,26 @@ describe('StatusBarManager', () => {
       const manager = new StatusBarManager(createMockFactory().factory, createMockTranslations());
       manager.dispose();
       // Should not throw
+    });
+  });
+
+  describe('single click', () => {
+    it('tracks the shown state', () => {
+      const { factory } = createMockFactory();
+      const manager = new StatusBarManager(factory, createMockTranslations());
+      manager.create();
+      manager.setState('auth');
+      expect(manager.state).toBe('auth');
+      manager.update(makeSnapshot(10), { warning: 80, error: 95 });
+      expect(manager.state).toBe('active');
+    });
+
+    it('adds a key in setup, selects a key in auth, and refreshes otherwise', () => {
+      expect(singleClickCommand('setup')).toBe('opencodeGoQuota.configure');
+      expect(singleClickCommand('auth')).toBe('opencodeGoQuota.selectApiKey');
+      expect(singleClickCommand('active')).toBe('opencodeGoQuota.refresh');
+      expect(singleClickCommand('error')).toBe('opencodeGoQuota.refresh');
+      expect(singleClickCommand(undefined)).toBe('opencodeGoQuota.refresh');
     });
   });
 });

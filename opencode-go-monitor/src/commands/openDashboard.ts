@@ -1,7 +1,8 @@
 import type { CommandsLike, EnvLike, UriLike, DisposableLike } from './types';
 
+export const DASHBOARD_URL = 'https://opencode.ai/console';
+
 export function registerOpenDashboardCommand(
-  workspaceId: string,
   env: EnvLike,
   commands: CommandsLike,
   uriFactory: { parse: (uri: string) => UriLike } = {
@@ -9,7 +10,6 @@ export function registerOpenDashboardCommand(
   },
 ): DisposableLike {
   return commands.registerCommand('opencodeGoQuota.openDashboard', async () => {
-    const url = `https://opencode.ai/console/${workspaceId}/go`;
-    await env.openExternal(uriFactory.parse(url));
+    await env.openExternal(uriFactory.parse(DASHBOARD_URL));
   });
 }

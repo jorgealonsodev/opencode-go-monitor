@@ -1,2 +1,2 @@
-export * from './credentials';
+export * from './profiles';
 export * from './history';

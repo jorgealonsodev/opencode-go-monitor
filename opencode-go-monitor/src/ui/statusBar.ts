@@ -27,15 +27,16 @@ function createProgressBar(percent: number, length: number = 20): string {
 
 export class StatusBarManager {
   private _item: StatusBarItem | undefined;
-  private _workspaceId: string | undefined;
+  private _state: StatusBarState | undefined;
 
   constructor(
     private readonly factory: StatusBarItemFactory,
     private readonly t: Translations,
   ) {}
 
-  setWorkspaceId(workspaceId: string | undefined): void {
-    this._workspaceId = workspaceId;
+  /** Last state shown (`active` after update()); drives the single-click action. */
+  get state(): StatusBarState | undefined {
+    return this._state;
   }
 
   create(): StatusBarItem {
@@ -83,14 +84,10 @@ export class StatusBarManager {
       `${monthlyBar} \`${snapshot.monthly.usagePercent}%\` (${this.t.statusBarReset(formatTime(snapshot.monthly.resetsInSeconds))})`,
       '',
       `---`,
-      [
-        this._workspaceId ? this.t.statusBarWorkspace(this._workspaceId) : undefined,
-        this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString()),
-      ]
-        .filter(Boolean)
-        .join(' | '),
+      this.t.statusBarUpdated(new Date(snapshot.timestamp).toLocaleTimeString()),
     ].join('\n');
 
+    this._state = 'active';
     this._item.text = this.t.statusBarText(label, pct, reset);
     this._item.tooltip = tooltip;
     this._item.command = 'opencodeGoQuota.statusBarClick';
@@ -116,6 +113,9 @@ export class StatusBarManager {
   setState(state: StatusBarState): void {
     if (!this._item) {
       return;
+    }
+    if (state !== 'active') {
+      this._state = state;
     }
 
     switch (state) {
@@ -156,5 +156,17 @@ export class StatusBarManager {
 
   get item(): StatusBarItem | undefined {
     return this._item;
+  }
+}
+
+/** Command run by a single status bar click for the given state (FR3). */
+export function singleClickCommand(state: StatusBarState | undefined): string {
+  switch (state) {
+    case 'setup':
+      return 'opencodeGoQuota.configure';
+    case 'auth':
+      return 'opencodeGoQuota.selectApiKey';
+    default:
+      return 'opencodeGoQuota.refresh';
   }
 }

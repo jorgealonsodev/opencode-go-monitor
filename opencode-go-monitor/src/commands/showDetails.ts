@@ -38,7 +38,7 @@ export function registerShowDetailsCommand(
     if (history.length === 0) {
       const msg = t?.msgNoDataAvailable ?? 'No quota data available. Try refreshing manually.';
       const refreshLabel = t?.msgRefreshNow ?? 'Refresh Now';
-      const configLabel = t?.msgConfigureCredentials ?? 'Configure Credentials';
+      const configLabel = t?.actionAddApiKey ?? 'Add API Key';
       
       const action = await window.showErrorMessage(msg, refreshLabel, configLabel);
       

@@ -1,48 +1,42 @@
-import type { QuotaFetcher } from '../domain/types';
-import type { HistoryStorage } from '../storage/history';
-import type { StatusBarManager } from '../ui/statusBar';
 import { AuthError, CredentialsError } from '../domain/errors';
 import type { CommandsLike, WindowLike, DisposableLike } from './types';
 import type { Translations } from '../i18n';
+import { ADD_API_KEY_COMMAND, REPLACE_API_KEY_COMMAND, SELECT_API_KEY_COMMAND } from './apiKeys';
 
-type DisplayWindow = 'rolling' | 'weekly' | 'monthly';
+export interface Refreshable {
+  refresh(): Promise<void>;
+}
 
-export function registerRefreshCommand(
-  fetcher: QuotaFetcher,
-  historyStorage: HistoryStorage,
-  statusBarManager: StatusBarManager,
-  window: WindowLike,
-  commands: CommandsLike,
-  thresholds: { warning: number; error: number } = { warning: 80, error: 95 },
-  displayWindow: DisplayWindow = 'rolling',
-  t?: Translations,
-): DisposableLike {
-  return commands.registerCommand('opencodeGoQuota.refresh', async () => {
-    statusBarManager.setState('loading');
+/** Manual Refresh: delegates to the poller, which owns debounce, backoff and error routing. */
+export function registerRefreshCommand(poller: Refreshable, commands: CommandsLike): DisposableLike {
+  return commands.registerCommand('opencodeGoQuota.refresh', () => poller.refresh());
+}
 
-    try {
-      const snapshot = await fetcher.fetch();
-      await historyStorage.append(snapshot);
-      statusBarManager.update(snapshot, thresholds, displayWindow);
-    } catch (err) {
-      if (err instanceof AuthError) {
-        statusBarManager.setState('auth');
-        // TEMPORARY (T2a): translated wording and Select/Replace actions arrive in T2b
-        await window.showErrorMessage(`API key '${err.profileName}' was rejected by OpenCode (HTTP ${err.httpStatus}).`);
-        return;
+/** One notification per auth failure episode; names the profile, never the key. */
+export function notifyAuthRejected(err: AuthError, window: WindowLike, commands: CommandsLike, t: Translations): void {
+  void window
+    .showErrorMessage(t.msgAuthRejected(err.profileName, err.httpStatus), t.actionSelectApiKey, t.actionReplaceApiKey)
+    .then((choice) => {
+      if (choice === t.actionSelectApiKey) {
+        void commands.executeCommand(SELECT_API_KEY_COMMAND);
+      } else if (choice === t.actionReplaceApiKey) {
+        void commands.executeCommand(REPLACE_API_KEY_COMMAND, err.profileId);
       }
-      statusBarManager.setState('error');
-      if (err instanceof CredentialsError) {
-        await window.showErrorMessage('OpenCode Go credentials are missing. Please re-configure.', 'Configure Now').then((action) => {
-          if (action === 'Configure Now') {
-            commands.executeCommand('opencodeGoQuota.configure');
-          }
-        });
-      } else if (t) {
-        await window.showErrorMessage(t.msgFailedToRefresh(err instanceof Error ? err.message : String(err)));
-      } else {
-        await window.showErrorMessage(`Failed to refresh quota: ${err instanceof Error ? err.message : String(err)}`);
+    });
+}
+
+/** Feedback for a failed manual Refresh (auth failures are reported by notifyAuthRejected). */
+export function notifyRefreshFailed(err: unknown, window: WindowLike, commands: CommandsLike, t: Translations): void {
+  if (err instanceof AuthError) {
+    return;
+  }
+  if (err instanceof CredentialsError) {
+    void window.showErrorMessage(t.msgNoApiKeys, t.actionAddApiKey).then((choice) => {
+      if (choice === t.actionAddApiKey) {
+        void commands.executeCommand(ADD_API_KEY_COMMAND);
       }
-    }
-  });
+    });
+    return;
+  }
+  void window.showErrorMessage(t.msgFailedToRefresh(err instanceof Error ? err.message : String(err)));
 }
