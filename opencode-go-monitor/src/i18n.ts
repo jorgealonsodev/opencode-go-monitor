@@ -23,6 +23,7 @@ export interface Translations {
   stateError: string;
   tooltipSetup: string;
   tooltipInvalidKey: (name: string) => string;
+  tooltipInvalidKeyUnnamed: string;
   
   // Messages
   msgFailedToRefresh: (error: string) => string;
@@ -115,6 +116,7 @@ const en: Translations = {
   stateError: 'OC Go: error',
   tooltipSetup: 'No OpenCode Go API key configured. Click to add one.',
   tooltipInvalidKey: (name) => `API key '${name}' was rejected (401/403). Click to choose another key.`,
+  tooltipInvalidKeyUnnamed: 'The active API key was rejected (401/403). Click to choose another key.',
   
   // Messages
   msgFailedToRefresh: (error) => `Failed to refresh quota: ${error}`,
@@ -207,6 +209,7 @@ const es: Translations = {
   stateError: 'OC Go: error',
   tooltipSetup: 'No hay ninguna clave de API de OpenCode Go configurada. Haz clic para añadir una.',
   tooltipInvalidKey: (name) => `Se rechazó la clave de API '${name}' (401/403). Haz clic para elegir otra clave.`,
+  tooltipInvalidKeyUnnamed: 'Se rechazó la clave de API activa (401/403). Haz clic para elegir otra clave.',
   
   // Messages
   msgFailedToRefresh: (error) => `Error al actualizar quota: ${error}`,

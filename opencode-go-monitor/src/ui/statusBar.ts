@@ -127,10 +127,12 @@ export class StatusBarManager {
     this._item.command = 'opencodeGoQuota.statusBarClick';
 
     // Color reflects the WORST scenario among all windows (limit-reached counts as 100%)
+    const effectivePercent = (w: QuotaWindow): number =>
+      w.status === 'limit-reached' ? 100 : w.usagePercent;
     const maxPercent = Math.max(
-      snapshot.rolling.usagePercent,
-      snapshot.weekly.usagePercent,
-      snapshot.monthly.usagePercent
+      effectivePercent(snapshot.rolling),
+      effectivePercent(snapshot.weekly),
+      effectivePercent(snapshot.monthly)
     );
     if (maxPercent >= thresholds.error) {
       this._item.color = ERROR_COLOR;
@@ -192,7 +194,9 @@ export class StatusBarManager {
         this._item.text = this.t.stateInvalidKey;
         this._item.color = ERROR_COLOR;
         this._item.backgroundColor = undefined;
-        this._item.tooltip = this.t.tooltipInvalidKey(this.profileName ?? '');
+        this._item.tooltip = this.profileName
+          ? this.t.tooltipInvalidKey(this.profileName)
+          : this.t.tooltipInvalidKeyUnnamed;
         break;
       case 'error':
         this._item.text = this.t.stateError;

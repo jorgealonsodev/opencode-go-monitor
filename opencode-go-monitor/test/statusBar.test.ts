@@ -160,6 +160,15 @@ describe('StatusBarManager', () => {
       expect(text.match(/Limit reached/g)).toHaveLength(1);
     });
 
+    it('uses the error color even when a limit-reached window reports a low percent', () => {
+      const { manager, item } = setup();
+      manager.setProfileName('Personal', 1);
+      const snapshot = makeSnapshot(10);
+      snapshot.weekly = win(40, 3600, 'limit-reached');
+      manager.update(snapshot, THRESHOLDS);
+      expect(item.color).toBe('#f14c4c');
+    });
+
     it('is localized in Spanish', () => {
       const { manager, item } = setup(es);
       manager.setProfileName('Personal', 1);
@@ -245,6 +254,12 @@ describe('StatusBarManager', () => {
       expect(item.tooltip).toBe("API key 'Team 1' was rejected (401/403). Click to choose another key.");
       expect(item.color).toBe('#f14c4c');
       expect(singleClickCommand(manager.state)).toBe('opencodeGoQuota.selectApiKey');
+    });
+
+    it('auth tooltip without a known profile name does not render empty quotes', () => {
+      const { manager, item } = setup();
+      manager.setState('auth');
+      expect(item.tooltip).toBe('The active API key was rejected (401/403). Click to choose another key.');
     });
 
     it('auth tooltip is plain text, so a markdown-looking name stays inert', () => {
