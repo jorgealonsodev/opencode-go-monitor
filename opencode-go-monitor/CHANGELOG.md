@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.5] - 2026-10-11
 
 ### Fixed
 - Quota data could no longer be read after OpenCode moved the Go usage page to a client-rendered console (`https://opencode.ai/console/<workspace-id>/go`). Usage is now fetched from the console status API (`GET https://opencode.ai/console/api/go/status`) using the `auth` cookie and the workspace ID as `x-org-id`; the 5-hour, weekly and monthly meters map to the rolling, weekly and monthly windows.
