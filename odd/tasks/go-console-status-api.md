@@ -69,3 +69,8 @@ Console endpoint returned HTTP 401 with stored cookie (sessions expire). The API
 - RDD: risk medium, review granted, lens reliability → approved, acknowledged (lineage review-f8031725c0de5700).
 - Advisories R3-limit-color-unenforced and R3-auth-tooltip-empty-name fixed inline in `9476dd4` (test-first: 2 RED → GREEN; 226/226 tests).
 - Known, not fixed (pre-existing / minor): `opencodeGoQuota.debug` setting is documented but unread; renaming the active key updates the status bar only on next refresh.
+
+### Release prep (2026-10-11)
+- Remote history rewrite completed: `master` and tags v0.1.0–v0.1.4 force-pushed to the sanitized history (local backup ref `backup/origin-master-before-rewrite` + scratchpad bundle).
+- VSIX 1.0.0 built locally (56.91 KB). Manual check with a real key (T2e) is pending on the user.
+- Delivery: PR to `master`, CI, merge, tag `v1.0.0` (release workflow packages the VSIX).

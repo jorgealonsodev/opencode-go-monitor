@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Reviewed (product/UX, architecture, security, testability) — ready for implementation |
+| Status | Implemented in 1.0.0 (T2a–T2d on `fix/go-console-status-api`) |
 | Revision | 2 — 2026-10-11 |
 | Target release | 1.0.0 (first stable release; breaking setup change from 0.x; 0.1.5 is never published) |
 | Branch | `fix/go-console-status-api` |
